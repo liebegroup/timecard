@@ -56,8 +56,8 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
 .spinner{width:24px;height:24px;border:3px solid var(--bd2);border-top-color:#185FA5;border-radius:50%;animation:spin .8s linear infinite;display:inline-block}
 @keyframes spin{to{transform:rotate(360deg)}}
 .sync{position:fixed;bottom:16px;right:16px;background:#185FA5;color:#E6F1FB;padding:8px 14px;border-radius:var(--R);font-size:12px;display:none;align-items:center;gap:6px;z-index:999;box-shadow:0 2px 12px rgba(0,0,0,.15)}
-.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.38);align-items:flex-start;justify-content:center;z-index:200;padding-top:28px;overflow-y:auto}
-.modal{background:var(--bg);border-radius:var(--R);border:0.5px solid var(--bd2);padding:1.25rem;width:420px;max-width:96vw;margin-bottom:30px}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.38);align-items:flex-start;justify-content:center;z-index:200;padding-top:20px;overflow-y:auto}
+.modal{background:var(--bg);border-radius:var(--R);border:0.5px solid var(--bd2);padding:1.25rem;width:420px;max-width:96vw;margin-bottom:30px;max-height:90vh;overflow-y:auto}
 .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .site-card{background:var(--bg);border:0.5px solid var(--bd2);border-radius:var(--R);padding:14px 16px;margin-bottom:10px}
 /* マトリクス */
@@ -137,7 +137,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
       <div style="text-align:center;font-size:12px;color:var(--tx2);margin-bottom:12px" id="dateStr"></div>
       <div id="noticeArea"></div>
       <div class="card">
-        <div class="row" style="margin-bottom:10px">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap">
           <span style="font-size:13px;font-weight:500" id="statusTxt"></span>
           <span style="font-size:12px;color:var(--tx2)" id="elapsedTxt"></span>
         </div>
