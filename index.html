@@ -2,8 +2,8 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>タイムカード v27</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>タイムカード v28</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -16,7 +16,7 @@
   --r:6px;--R:10px;
   --font:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
 }
-body{font-family:var(--font);background:var(--bg3);min-height:100vh}
+body{font-family:var(--font);background:var(--bg3);min-height:100vh;overflow-x:hidden;width:100%}
 .card{background:var(--bg);border:0.5px solid var(--bd2);border-radius:var(--R);padding:1rem 1.25rem;margin-bottom:12px}
 .btn{padding:6px 13px;border-radius:var(--r);font-size:13px;cursor:pointer;border:0.5px solid var(--bd);background:var(--bg);color:var(--tx);font-family:var(--font);display:inline-flex;align-items:center;gap:5px}
 .btn:hover{background:var(--bg2)}
@@ -78,7 +78,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
 </style>
 </head>
 <body>
-<div id="app">
+<div id="app" style="max-width:100vw;overflow-x:hidden">
 
 <!-- 同期バー -->
 <div class="sync" id="syncBar"><span class="spinner" style="width:14px;height:14px;border-width:2px"></span><span id="syncMsg">保存中...</span></div>
@@ -90,7 +90,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
       <i class="ti ti-clock" style="font-size:30px;color:#185FA5"></i>
       <div style="font-size:18px;font-weight:500;margin-top:6px;color:var(--tx)">タイムカード</div>
       <div style="font-size:11px;color:var(--tx2)">1ヶ月単位変形労働時間制対応</div>
-      <div style="font-size:10px;color:var(--tx3);margin-top:4px">v27</div>
+      <div style="font-size:10px;color:var(--tx3);margin-top:4px">v28</div>
     </div>
     <div class="card">
       <div id="loginErr" class="notice nErr" style="display:none"></div>
@@ -113,7 +113,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
   <div style="background:var(--bg);border-bottom:0.5px solid var(--bd2);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
     <div style="font-size:15px;font-weight:500;color:var(--tx);display:flex;align-items:center;gap:8px">
       <i class="ti ti-clock"></i>タイムカード
-      <span style="font-size:10px;color:var(--tx3);font-weight:400">v27</span>
+      <span style="font-size:10px;color:var(--tx3);font-weight:400">v28</span>
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <span id="navSite" class="badge"></span>
