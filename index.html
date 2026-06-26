@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>タイムカード v29</title>
+<title>タイムカード</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -90,7 +90,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
       <i class="ti ti-clock" style="font-size:30px;color:#185FA5"></i>
       <div style="font-size:18px;font-weight:500;margin-top:6px;color:var(--tx)">タイムカード</div>
       <div style="font-size:11px;color:var(--tx2)">1ヶ月単位変形労働時間制対応</div>
-      <div style="font-size:10px;color:var(--tx3);margin-top:4px">v29</div>
+      <div style="font-size:10px;color:var(--tx3);margin-top:4px" id="verLogin"></div>
     </div>
     <div class="card">
       <div id="loginErr" class="notice nErr" style="display:none"></div>
@@ -113,7 +113,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
   <div style="background:var(--bg);border-bottom:0.5px solid var(--bd2);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
     <div style="font-size:15px;font-weight:500;color:var(--tx);display:flex;align-items:center;gap:8px">
       <i class="ti ti-clock"></i>タイムカード
-      <span style="font-size:10px;color:var(--tx3);font-weight:400">v29</span>
+      <span style="font-size:10px;color:var(--tx3);font-weight:400" id="verNav"></span>
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <span id="navSite" class="badge"></span>
@@ -151,6 +151,10 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
           <div class="stat"><div class="sLbl">実働</div><div class="sVal" id="sWork">0:00</div></div>
         </div>
         <div id="nightNotice" style="display:none" class="notice nWarn"><i class="ti ti-moon"></i> 夜勤シフト — 深夜割増(22:00〜5:00)自動計算</div>
+        <div id="workSiteDisp" style="display:none;margin-top:8px;padding:8px 12px;background:var(--bg2);border-radius:var(--r);font-size:12px;color:var(--tx2);display:flex;align-items:center;gap:6px">
+          <i class="ti ti-map-pin" style="color:#185FA5"></i>
+          <span>本日の勤務地: </span><span id="workSiteName" style="font-weight:500;color:var(--tx)"></span>
+        </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
         <button class="pbtn pIn" id="bIn" onclick="punchIn()"><i class="ti ti-login"></i> 出勤</button>
@@ -177,7 +181,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
       <div id="histFilters" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
       <div class="card" style="padding:0;overflow:hidden;overflow-x:auto">
         <table class="tbl">
-          <thead><tr><th>日付</th><th>出勤</th><th>退勤</th><th>休憩</th><th>実働</th><th>深夜</th><th></th></tr></thead>
+          <thead><tr><th>日付</th><th>勤務地</th><th>出勤</th><th>退勤</th><th>休憩</th><th>実働</th><th>深夜</th><th></th></tr></thead>
           <tbody id="histBody"></tbody>
         </table>
       </div>
@@ -266,12 +270,30 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
       <div style="flex:1;min-width:110px"><label>退勤日</label><input type="date" id="editOutDate" class="ifield"></div>
       <div style="flex:1;min-width:90px"><label>退勤時刻</label><input type="time" id="editOutTime" class="ifield"></div>
     </div>
+    <div style="margin-bottom:10px"><label>勤務地</label>
+      <select id="editWorkSite" class="ifield" style="cursor:pointer">
+        <option value="">選択してください</option>
+      </select>
+    </div>
     <div style="margin-bottom:10px"><label>休憩時間（分）</label><input type="number" id="editBreak" class="ifield" min="0" max="480" placeholder="例: 60"></div>
     <div id="editRecDisp" class="notice nInfo" style="display:none;font-size:11px;margin-bottom:10px"></div>
     <div style="display:flex;gap:7px">
       <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveEdit()">保存</button>
       <button class="btn" style="flex:1;justify-content:center" onclick="closeEdit()">キャンセル</button>
     </div>
+  </div>
+</div>
+
+<!-- 勤務地選択モーダル -->
+<div id="siteSelModal" class="modal-bg" style="display:none">
+  <div class="modal" style="width:320px">
+    <div style="text-align:center;margin-bottom:16px">
+      <i class="ti ti-map-pin" style="font-size:28px;color:#185FA5"></i>
+      <div style="font-size:15px;font-weight:600;margin-top:6px;color:var(--tx)">本日の勤務地を選択</div>
+      <div style="font-size:12px;color:var(--tx2);margin-top:4px">出勤する事業所を選んでください</div>
+    </div>
+    <div id="siteSelList" style="display:grid;gap:8px;margin-bottom:14px"></div>
+    <button class="btn" style="width:100%;justify-content:center" onclick="closeSiteSel()">キャンセル</button>
   </div>
 </div>
 
@@ -314,6 +336,16 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
 // ============================================================
 // 設定
 // ============================================================
+/*
+ * =============================================
+ * バージョン履歴
+ * v1.0.0 - 基本打刻システム・スプレッドシート連携
+ * v1.1.0 - ID形式(A00001)・職種・位置情報・変形労働時間制
+ * v1.2.0 - スマホ対応・全社集計・勤務表・リアルタイム状況
+ * v1.3.0 - 初回パスワード強制変更
+ * v1.4.0 - 打刻時勤務地選択
+ * =============================================
+ */
 const GAS = 'https://script.google.com/macros/s/AKfycbx2FpKvpvDeEObUgS9DTLTQ9qNXa99oK3rGBr3FzwbdqZ1YPQCK4EJJgW0LaeTs6MBR/exec';
 
 const EMP = {
@@ -323,6 +355,15 @@ const EMP = {
 };
 const SITE_COLORS = ['#185FA5','#3B6D11','#854F0B','#533AB7','#993556'];
 const INITIAL_PW = '1234'; // 初期パスワード（管理者がここを変更）
+
+// =============================================
+// バージョン管理
+// メジャー.マイナー.パッチ
+// メジャー: 大きな変更・作り直し
+// マイナー: 機能追加
+// パッチ  : バグ修正・細かい調整
+// =============================================
+const VERSION = '1.4.0';
 const DOW = ['日','月','火','水','木','金','土'];
 
 // ============================================================
@@ -392,7 +433,7 @@ function calcMidnight(inTs,outTs){
 function recKey(uid,date){ return uid+'_'+date; }
 function getRec(uid,date){
   let k=recKey(uid,date);
-  if(!records[k])records[k]={inDate:date,inTs:null,outDate:date,outTs:null,breaks:[],breakStart:null,inLat:null,inLon:null,outLat:null,outLon:null};
+  if(!records[k])records[k]={inDate:date,inTs:null,outDate:date,outTs:null,breaks:[],breakStart:null,inLat:null,inLon:null,outLat:null,outLon:null,workSiteId:null};
   return records[k];
 }
 function brkMins(r){
@@ -510,7 +551,8 @@ async function saveRec(uid,inDate){
       })(),
       inDate:r.inDate,inTs:r.inTs||'',outDate:r.outDate||inDate,outTs:r.outTs||'',
       breaks:JSON.stringify(r.breaks||[]),breakStart:r.breakStart||'',
-      inLat:r.inLat||'',inLon:r.inLon||'',outLat:r.outLat||'',outLon:r.outLon||''
+      inLat:r.inLat||'',inLon:r.inLon||'',outLat:r.outLat||'',outLon:r.outLon||'',
+      workSiteId:r.workSiteId||''
     });
     document.getElementById('syncMsg').textContent='保存完了 ✓';
   }catch(e){
@@ -533,6 +575,13 @@ async function saveUser(u){
 // 初期化
 // ============================================================
 async function init(){
+  // バージョン表示
+  document.title = 'タイムカード v'+VERSION;
+  let vl=document.getElementById('verLogin');
+  let vn=document.getElementById('verNav');
+  if(vl)vl.textContent='v'+VERSION;
+  if(vn)vn.textContent='v'+VERSION;
+
   try{
     await loadMaster();
     document.getElementById('loginLoading').style.display='none';
@@ -701,6 +750,14 @@ function updatePunch(){
   document.getElementById('sBrk').textContent=fMin(brkMins(r));
   document.getElementById('sWork').textContent=fWork(workMins(r));
   document.getElementById('nightNotice').style.display=(isNightShift(r)&&r.inTs)?'block':'none';
+  // 勤務地表示
+  let wsd=document.getElementById('workSiteDisp');
+  let wsn=document.getElementById('workSiteName');
+  if(r.inTs&&r.workSiteId){
+    let ws=sites.find(s=>s.id===r.workSiteId);
+    if(ws&&wsd&&wsn){wsd.style.display='flex';wsn.textContent=ws.name;wsn.style.color=ws.color;}
+  }else{if(wsd)wsd.style.display='none';}
+
   let bI=document.getElementById('bIn'),bO=document.getElementById('bOut'),bB=document.getElementById('bBrk'),bR=document.getElementById('bRes');
   let st=document.getElementById('statusTxt'),el=document.getElementById('elapsedTxt');
   if(!r.inTs){
@@ -839,8 +896,10 @@ function renderHistory(){
     let ng=isNightShift(r),mn=midnight(r);
     let inR=roundIn(r.inTs),outR=r.outTs?roundOut(r.outTs):null;
     let inChg=inR!==r.inTs,outChg=outR&&outR!==r.outTs;
+    let ws=r.workSiteId?sites.find(s=>s.id===r.workSiteId):null;
     rows+=`<tr style="cursor:pointer" onclick="openEditForRec(${histUid},'${ds}')">
       <td>${mo}/${d}${ng?'<span class="nbadge">夜勤</span>':''}</td>
+      <td>${ws?`<span style="display:inline-flex;align-items:center;gap:4px"><span style="width:8px;height:8px;border-radius:50%;background:${ws.color}"></span>${ws.name}</span>`:'—'}</td>
       <td>${tStr(r.inTs)}${inChg?`<span style="font-size:9px;color:var(--tx2)">→${tStr(inR)}</span>`:''}</td>
       <td>${tStr(r.outTs)}${isNight(r)?'<span class="nbadge">翌</span>':''}${outChg?`<span style="font-size:9px;color:var(--tx2)">→${tStr(outR)}</span>`:''}</td>
       <td>${fMin(brkMins(r))}</td>
@@ -1340,6 +1399,9 @@ function _openEdit(targetUid,date){
     ue.innerHTML=`<option value="${cu.id}">${cu.name}</option>`;ue.disabled=true;
     note.innerHTML='<i class="ti ti-info-circle"></i> 自分の記録のみ修正・追加できます。';note.style.display='block';
   }
+  // 勤務地プルダウンを埋める
+  let ewsSel=document.getElementById('editWorkSite');
+  ewsSel.innerHTML='<option value="">選択してください</option>'+sites.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
   document.getElementById('editInDate').value=date;
   document.getElementById('editOutDate').value=date;
   document.getElementById('editInTime').value='';
@@ -1374,6 +1436,7 @@ function loadRecToForm(){
     }
     let tb=(r.breaks||[]).reduce((s,b)=>s+b,0);
     document.getElementById('editBreak').value=tb||'';
+    if(r.workSiteId)document.getElementById('editWorkSite').value=r.workSiteId;
     disp.textContent=`現在: 出勤 ${tStr(r.inTs)}${r.outTs?' / 退勤 '+tStr(r.outTs):''} / 休憩 ${tb}分 / 実働 ${fWork(workMins(r))}`;
     disp.style.display='block';
   }else{
@@ -1396,6 +1459,8 @@ async function saveEdit(){
   if(outTime&&outDate){let[h,mm]=outTime.split(':').map(Number);let d=new Date(outDate);d.setHours(h,mm,0,0);r.outTs=d.getTime();r.outDate=outDate;}
   else{r.outTs=null;r.outDate=inDate;}
   r.breaks=[brk];r.breakStart=null;
+  let wsSel=document.getElementById('editWorkSite').value;
+  if(wsSel)r.workSiteId=parseInt(wsSel);
   closeEdit();
   await saveRec(uid,inDate);
   notice('修正しました。','Ok');
