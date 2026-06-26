@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>タイムカード v28</title>
+<title>タイムカード v29</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -90,7 +90,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
       <i class="ti ti-clock" style="font-size:30px;color:#185FA5"></i>
       <div style="font-size:18px;font-weight:500;margin-top:6px;color:var(--tx)">タイムカード</div>
       <div style="font-size:11px;color:var(--tx2)">1ヶ月単位変形労働時間制対応</div>
-      <div style="font-size:10px;color:var(--tx3);margin-top:4px">v28</div>
+      <div style="font-size:10px;color:var(--tx3);margin-top:4px">v29</div>
     </div>
     <div class="card">
       <div id="loginErr" class="notice nErr" style="display:none"></div>
@@ -113,7 +113,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
   <div style="background:var(--bg);border-bottom:0.5px solid var(--bd2);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
     <div style="font-size:15px;font-weight:500;color:var(--tx);display:flex;align-items:center;gap:8px">
       <i class="ti ti-clock"></i>タイムカード
-      <span style="font-size:10px;color:var(--tx3);font-weight:400">v28</span>
+      <span style="font-size:10px;color:var(--tx3);font-weight:400">v29</span>
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <span id="navSite" class="badge"></span>
@@ -275,6 +275,23 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
   </div>
 </div>
 
+<!-- 初回パスワード強制変更モーダル -->
+<div id="forcePwModal" class="modal-bg" style="display:none">
+  <div class="modal" style="width:340px">
+    <div style="text-align:center;margin-bottom:16px">
+      <i class="ti ti-lock" style="font-size:32px;color:#185FA5"></i>
+      <div style="font-size:15px;font-weight:600;margin-top:8px;color:var(--tx)">パスワードを変更してください</div>
+      <div style="font-size:12px;color:var(--tx2);margin-top:6px">初期パスワードのままでは使用できません。<br>新しいパスワードを設定してください。</div>
+    </div>
+    <div id="forcePwErr" class="notice nErr" style="display:none;margin-bottom:10px"></div>
+    <div style="margin-bottom:10px"><label>新しいパスワード</label><input type="password" id="forcePwN1" class="ifield" placeholder="新しいパスワード（4文字以上）"></div>
+    <div style="margin-bottom:14px"><label>確認（もう一度入力）</label><input type="password" id="forcePwN2" class="ifield" placeholder="確認のため再入力"></div>
+    <button class="btn btn-p" style="width:100%;justify-content:center;padding:10px" onclick="saveForcePw()">
+      <i class="ti ti-check"></i> パスワードを変更して開始
+    </button>
+  </div>
+</div>
+
 <!-- PW/移動モーダル -->
 <div id="pwModal" class="modal-bg" style="display:none">
   <div class="modal" style="width:300px">
@@ -305,6 +322,7 @@ const EMP = {
   short_part: {label:'短時間パート',    h:0, shortage:false},
 };
 const SITE_COLORS = ['#185FA5','#3B6D11','#854F0B','#533AB7','#993556'];
+const INITIAL_PW = '1234'; // 初期パスワード（管理者がここを変更）
 const DOW = ['日','月','火','水','木','金','土'];
 
 // ============================================================
@@ -552,24 +570,63 @@ async function doLogin(){
     document.getElementById('lsPw').value='';return;
   }
   cu=u;histUid=u.id;repUid=u.id;
+
+  // 初期パスワードのままならログイン後に強制変更
+  if(String(u.pw)===String(INITIAL_PW)){
+    document.getElementById('pgLogin').style.display='none';
+    document.getElementById('pgMain').style.display='block';
+    setupMainAfterLogin(u);
+    // 強制パスワード変更モーダルを表示
+    document.getElementById('forcePwErr').style.display='none';
+    document.getElementById('forcePwN1').value='';
+    document.getElementById('forcePwN2').value='';
+    document.getElementById('forcePwModal').style.display='flex';
+    return;
+  }
+
   document.getElementById('pgLogin').style.display='none';
   document.getElementById('pgMain').style.display='block';
-  let s=sites.find(x=>x.id===u.siteId);
-  let ns=document.getElementById('navSite');
-  ns.textContent=s?.name||'';ns.style.cssText=`background:${s?.color||'#888'}22;color:${s?.color||'#888'};padding:3px 9px;border-radius:var(--r);font-size:11px;font-weight:500`;
-  document.getElementById('navName').textContent=fmtId(u.id,u.prefix)+' '+u.name;
-  document.getElementById('navRole').textContent=u.role==='admin'?'管理者':'職員';
-  document.getElementById('navRole').className='badge '+(u.role==='admin'?'bAdmin':'bStaff');
-  let isAdmin=u.role==='admin';
-  ['tabRT','tabCo','tabMx','tabAd'].forEach(id=>document.getElementById(id).style.display=isAdmin?'':'none');
-  // 勤務表の事業所プルダウン
-  let ms=document.getElementById('mxSite');
-  ms.innerHTML='<option value="all">全事業所</option>'+sites.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  setupMainAfterLogin(u);
   // ログイン後に当月データを取得
   loadedMonths.delete(THIS_MONTH);
   await loadMonth(THIS_MONTH,true);
   showTab('punch');
   startClock();
+}
+
+function setupMainAfterLogin(u){
+  let s=sites.find(x=>x.id===u.siteId);
+  let ns=document.getElementById('navSite');
+  ns.textContent=s?.name||'';
+  ns.style.cssText=`background:${s?.color||'#888'}22;color:${s?.color||'#888'};padding:3px 9px;border-radius:var(--r);font-size:11px;font-weight:500`;
+  document.getElementById('navName').textContent=fmtId(u.id,u.prefix)+' '+u.name;
+  document.getElementById('navRole').textContent=u.role==='admin'?'管理者':'職員';
+  document.getElementById('navRole').className='badge '+(u.role==='admin'?'bAdmin':'bStaff');
+  let isAdmin=u.role==='admin';
+  ['tabRT','tabCo','tabMx','tabAd'].forEach(id=>document.getElementById(id).style.display=isAdmin?'':'none');
+  let ms=document.getElementById('mxSite');
+  ms.innerHTML='<option value="all">全事業所</option>'+sites.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+}
+
+// 強制パスワード変更の保存
+async function saveForcePw(){
+  let n1=document.getElementById('forcePwN1').value;
+  let n2=document.getElementById('forcePwN2').value;
+  let e=document.getElementById('forcePwErr');
+  e.style.display='none';
+  if(!n1||n1.length<4){e.textContent='4文字以上で入力してください';e.style.display='block';return;}
+  if(n1===INITIAL_PW){e.textContent='初期パスワードと同じパスワードは使用できません';e.style.display='block';return;}
+  if(n1!==n2){e.textContent='パスワードが一致しません';e.style.display='block';return;}
+  // パスワードを更新
+  cu.pw=n1;
+  await saveUser(cu);
+  document.getElementById('forcePwModal').style.display='none';
+  // データ読み込みを続行
+  loadedMonths.delete(THIS_MONTH);
+  await loadMonth(THIS_MONTH,true);
+  showTab('punch');
+  startClock();
+  notice('パスワードを変更しました。次回からは新しいパスワードでログインしてください。','Ok');
 }
 
 function doLogout(){
