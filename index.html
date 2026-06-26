@@ -403,8 +403,15 @@ async function api(params){
   try{
     const r=await fetch(url,{redirect:'follow'});
     const t=await r.text();
-    return JSON.parse(t);
+    // レスポンスがJSONかチェック
+    if(t.trim().startsWith('{')||t.trim().startsWith('[')){
+      return JSON.parse(t);
+    }
+    // HTMLが返ってきた場合はJSONPにフォールバック
+    console.warn('Non-JSON response, falling back to JSONP:', t.slice(0,100));
+    return await jsonp(params);
   }catch(e){
+    console.warn('fetch failed, trying JSONP:', e.message);
     return await jsonp(params);
   }
 }
@@ -432,7 +439,7 @@ async function loadMaster(){
   const d=await api({action:'getMaster'});
   if(d.error)throw new Error(d.error);
   sites=d.sites.map(s=>({...s,id:Number(s.id)}));
-  users=d.users.map(u=>({...u,id:parseId(u.id),rawId:String(u.id),prefix:getPrefix(u.id),siteId:Number(u.siteId),employmentType:u.employmentType||'seishain',pw:String(u.pw)}));
+  users=d.users.map(u=>({...u,id:parseId(u.id),rawId:String(u.id),prefix:getPrefix(u.id),siteId:Number(u.siteId),employmentType:(u.employmentType&&u.employmentType!=='')?u.employmentType:'seishain',pw:String(u.pw)}));
   if(sites.length)document.getElementById('nextSiteId')||(window.nextSiteId=Math.max(...sites.map(s=>s.id))+1);
   window.nextSiteId=sites.length?Math.max(...sites.map(s=>s.id))+1:1;
   window.nextUserId=users.length?Math.max(...users.map(u=>u.id))+1:1;
@@ -443,9 +450,11 @@ async function loadMonth(ym, force=false){
   const d=await api({action:'getRecords',month:ym});
   if(d.error)throw new Error(d.error);
   (d.records||[]).forEach(r=>{
+    // userIdはA00001形式か数値か両対応
     let uid=parseId(r.userId);
+    if(!uid){console.warn('Invalid userId:', r.userId);return;}
     let k=recKey(uid,String(r.inDate));
-    let brk=[];try{brk=JSON.parse(String(r.breaks||'[]'));}catch(e){}
+    let brk=[];try{brk=JSON.parse(String(r.breaks||'[]'));}catch(e){brk=[];}
     records[k]={
       inDate:String(r.inDate),inTs:r.inTs?Number(r.inTs):null,
       outDate:r.outDate?String(r.outDate):String(r.inDate),outTs:r.outTs?Number(r.outTs):null,
@@ -454,6 +463,7 @@ async function loadMonth(ym, force=false){
     };
   });
   loadedMonths.add(ym);
+  console.log(`loadMonth(${ym}): ${Object.keys(records).length} records total`);
 }
 
 async function saveRec(uid,inDate){
