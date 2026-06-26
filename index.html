@@ -319,7 +319,11 @@ const THIS_MONTH = TODAY_STR.slice(0,7);
 // ID ユーティリティ
 // ============================================================
 function fmtId(n,prefix){ return (prefix||'A').toUpperCase()+String(n).padStart(5,'0'); }
-function parseId(s){ return parseInt(String(s).replace(/^[A-Za-z]+0*/,''))||0; }
+function parseId(s){ 
+  // A00001, A0001, A001 など桁数に関係なく数値部分を抽出
+  let m=String(s).match(/^[A-Za-z]+(\d+)$/);
+  return m?parseInt(m[1]):parseInt(String(s))||0; 
+}
 function getPrefix(s){ return (String(s).match(/^([A-Za-z]+)/)||['','A'])[1].toUpperCase(); }
 
 // ============================================================
@@ -403,12 +407,10 @@ async function api(params){
   try{
     const r=await fetch(url,{redirect:'follow'});
     const t=await r.text();
-    // レスポンスがJSONかチェック
     if(t.trim().startsWith('{')||t.trim().startsWith('[')){
       return JSON.parse(t);
     }
-    // HTMLが返ってきた場合はJSONPにフォールバック
-    console.warn('Non-JSON response, falling back to JSONP:', t.slice(0,100));
+    console.warn('Non-JSON response, trying JSONP');
     return await jsonp(params);
   }catch(e){
     console.warn('fetch failed, trying JSONP:', e.message);
@@ -439,7 +441,15 @@ async function loadMaster(){
   const d=await api({action:'getMaster'});
   if(d.error)throw new Error(d.error);
   sites=d.sites.map(s=>({...s,id:Number(s.id)}));
-  users=d.users.map(u=>({...u,id:parseId(u.id),rawId:String(u.id),prefix:getPrefix(u.id),siteId:Number(u.siteId),employmentType:(u.employmentType&&u.employmentType!=='')?u.employmentType:'seishain',pw:String(u.pw)}));
+  users=d.users.map(u=>({
+    ...u,
+    id:parseId(u.id),         // A0001→1, A00001→1 どちらも対応
+    rawId:String(u.id),
+    prefix:getPrefix(u.id),
+    siteId:Number(u.siteId),
+    employmentType:(u.employmentType&&u.employmentType!=='')?u.employmentType:'seishain',
+    pw:String(u.pw)
+  }));
   if(sites.length)document.getElementById('nextSiteId')||(window.nextSiteId=Math.max(...sites.map(s=>s.id))+1);
   window.nextSiteId=sites.length?Math.max(...sites.map(s=>s.id))+1:1;
   window.nextUserId=users.length?Math.max(...users.map(u=>u.id))+1:1;
@@ -450,9 +460,9 @@ async function loadMonth(ym, force=false){
   const d=await api({action:'getRecords',month:ym});
   if(d.error)throw new Error(d.error);
   (d.records||[]).forEach(r=>{
-    // userIdはA00001形式か数値か両対応
+    // A0001, A00001, 1 など形式に関わらず数値に変換
     let uid=parseId(r.userId);
-    if(!uid){console.warn('Invalid userId:', r.userId);return;}
+    if(!uid){console.warn('Skip invalid userId:', r.userId);return;}
     let k=recKey(uid,String(r.inDate));
     let brk=[];try{brk=JSON.parse(String(r.breaks||'[]'));}catch(e){brk=[];}
     records[k]={
@@ -471,7 +481,11 @@ async function saveRec(uid,inDate){
   showSync('保存中...');
   try{
     await api({action:'saveRecord',
-      userId:fmtId(uid,users.find(u=>u.id===uid)?.prefix),
+      userId:(()=>{
+        let u=users.find(x=>x.id===uid);
+        // 既存のrawId形式（A0001等）があればそれを優先して使う
+        return u?.rawId||fmtId(uid,u?.prefix);
+      })(),
       inDate:r.inDate,inTs:r.inTs||'',outDate:r.outDate||inDate,outTs:r.outTs||'',
       breaks:JSON.stringify(r.breaks||[]),breakStart:r.breakStart||'',
       inLat:r.inLat||'',inLon:r.inLon||'',outLat:r.outLat||'',outLon:r.outLon||''
@@ -487,7 +501,7 @@ async function saveRec(uid,inDate){
 async function saveUser(u){
   showSync('保存中...');
   try{
-    await api({action:'saveUser',id:fmtId(u.id,u.prefix),name:u.name,role:u.role,pw:String(u.pw),siteId:u.siteId,employmentType:u.employmentType||'seishain'});
+    await api({action:'saveUser',id:u.rawId||fmtId(u.id,u.prefix),name:u.name,role:u.role,pw:String(u.pw),siteId:u.siteId,employmentType:u.employmentType||'seishain'});
     document.getElementById('syncMsg').textContent='保存完了 ✓';
   }catch(e){document.getElementById('syncMsg').textContent='保存失敗';}
   hideSync();
