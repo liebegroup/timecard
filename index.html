@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>タイムカード v29</title>
+<title>タイムカード</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -90,7 +90,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
       <i class="ti ti-clock" style="font-size:30px;color:#185FA5"></i>
       <div style="font-size:18px;font-weight:500;margin-top:6px;color:var(--tx)">タイムカード</div>
       <div style="font-size:11px;color:var(--tx2)">1ヶ月単位変形労働時間制対応</div>
-      <div style="font-size:10px;color:var(--tx3);margin-top:4px">v29</div>
+      <div style="font-size:10px;color:var(--tx3);margin-top:4px" id="verLogin"></div>
     </div>
     <div class="card">
       <div id="loginErr" class="notice nErr" style="display:none"></div>
@@ -113,7 +113,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
   <div style="background:var(--bg);border-bottom:0.5px solid var(--bd2);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
     <div style="font-size:15px;font-weight:500;color:var(--tx);display:flex;align-items:center;gap:8px">
       <i class="ti ti-clock"></i>タイムカード
-      <span style="font-size:10px;color:var(--tx3);font-weight:400">v29</span>
+      <span style="font-size:10px;color:var(--tx3);font-weight:400" id="verNav"></span>
     </div>
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <span id="navSite" class="badge"></span>
@@ -314,6 +314,15 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
 // ============================================================
 // 設定
 // ============================================================
+/*
+ * =============================================
+ * バージョン履歴
+ * v1.0.0 - 基本打刻システム・スプレッドシート連携
+ * v1.1.0 - ID形式(A00001)・職種・位置情報・変形労働時間制
+ * v1.2.0 - スマホ対応・全社集計・勤務表・リアルタイム状況
+ * v1.3.0 - 初回パスワード強制変更
+ * =============================================
+ */
 const GAS = 'https://script.google.com/macros/s/AKfycbx2FpKvpvDeEObUgS9DTLTQ9qNXa99oK3rGBr3FzwbdqZ1YPQCK4EJJgW0LaeTs6MBR/exec';
 
 const EMP = {
@@ -323,6 +332,15 @@ const EMP = {
 };
 const SITE_COLORS = ['#185FA5','#3B6D11','#854F0B','#533AB7','#993556'];
 const INITIAL_PW = '1234'; // 初期パスワード（管理者がここを変更）
+
+// =============================================
+// バージョン管理
+// メジャー.マイナー.パッチ
+// メジャー: 大きな変更・作り直し
+// マイナー: 機能追加
+// パッチ  : バグ修正・細かい調整
+// =============================================
+const VERSION = '1.3.0';
 const DOW = ['日','月','火','水','木','金','土'];
 
 // ============================================================
@@ -533,6 +551,13 @@ async function saveUser(u){
 // 初期化
 // ============================================================
 async function init(){
+  // バージョン表示
+  document.title = 'タイムカード v'+VERSION;
+  let vl=document.getElementById('verLogin');
+  let vn=document.getElementById('verNav');
+  if(vl)vl.textContent='v'+VERSION;
+  if(vn)vn.textContent='v'+VERSION;
+
   try{
     await loadMaster();
     document.getElementById('loginLoading').style.display='none';
