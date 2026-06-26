@@ -275,6 +275,22 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
         <option value="">選択してください</option>
       </select>
     </div>
+    <div style="margin-bottom:10px"><label>シフト種別</label>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;padding:8px 12px;border:0.5px solid var(--bd);border-radius:var(--r);font-size:13px">
+          <input type="radio" name="editShift" id="editShiftDay" value="day" style="cursor:pointer">
+          <i class="ti ti-sun" style="color:#185FA5"></i> 日勤
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;padding:8px 12px;border:0.5px solid var(--bd);border-radius:var(--r);font-size:13px">
+          <input type="radio" name="editShift" id="editShiftNight" value="night" style="cursor:pointer">
+          <i class="ti ti-moon" style="color:#533AB7"></i> 夜勤
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;padding:8px 12px;border:0.5px solid var(--bd);border-radius:var(--r);font-size:13px">
+          <input type="radio" name="editShift" id="editShiftAuto" value="auto" checked style="cursor:pointer">
+          自動
+        </label>
+      </div>
+    </div>
     <div style="margin-bottom:10px"><label>休憩時間（分）</label><input type="number" id="editBreak" class="ifield" min="0" max="480" placeholder="例: 60"></div>
     <div id="editRecDisp" class="notice nInfo" style="display:none;font-size:11px;margin-bottom:10px"></div>
     <div style="display:flex;gap:7px">
@@ -385,6 +401,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
  * v1.6.0 - GAS URL更新(v10) workSiteId日付変換防止
  * v1.6.1 - 16時以降の出勤時にシフト選択
  * v1.6.2 - GAS URL更新(v11)
+ * v1.6.3 - 修正モーダルにシフト種別選択を追加
  * =============================================
  */
 const GAS = 'https://script.google.com/macros/s/AKfycbwykh354JElPsXf_OIIzpRtgSNgJEeauSRti2_fyvW5S8zRM3LBLCrQ9Z79aR_D_hKP/exec';
@@ -404,7 +421,7 @@ const INITIAL_PW = '1234'; // 初期パスワード（管理者がここを変�
 // マイナー: 機能追加
 // パッチ  : バグ修正・細かい調整
 // =============================================
-const VERSION = '1.6.2';
+const VERSION = '1.6.3';
 const DOW = ['日','月','火','水','木','金','土'];
 
 // =============================================
@@ -1538,6 +1555,7 @@ function _openEdit(targetUid,date){
   document.getElementById('editInTime').value='';
   document.getElementById('editOutTime').value='';
   document.getElementById('editBreak').value='';
+  document.getElementById('editShiftAuto').checked=true;
   document.getElementById('editRecDisp').style.display='none';
   m.style.display='flex';
   loadRecToForm();
@@ -1568,6 +1586,10 @@ function loadRecToForm(){
     let tb=(r.breaks||[]).reduce((s,b)=>s+b,0);
     document.getElementById('editBreak').value=tb||'';
     if(r.workSiteId)document.getElementById('editWorkSite').value=String(r.workSiteId);
+    // シフト種別をセット
+    if(r.isNight===true){document.getElementById('editShiftNight').checked=true;}
+    else if(r.isNight===false){document.getElementById('editShiftDay').checked=true;}
+    else{document.getElementById('editShiftAuto').checked=true;}
     disp.textContent=`現在: 出勤 ${tStr(r.inTs)}${r.outTs?' / 退勤 '+tStr(r.outTs):''} / 休憩 ${tb}分 / 実働 ${fWork(workMins(r))}`;
     disp.style.display='block';
   }else{
@@ -1592,6 +1614,11 @@ async function saveEdit(){
   r.breaks=[brk];r.breakStart=null;
   let wsSel=document.getElementById('editWorkSite').value;
   if(wsSel)r.workSiteId=String(wsSel);
+  // シフト種別を保存
+  let shiftVal=document.querySelector('input[name="editShift"]:checked')?.value;
+  if(shiftVal==='night')r.isNight=true;
+  else if(shiftVal==='day')r.isNight=false;
+  else r.isNight=null;
   closeEdit();
   await saveRec(uid,inDate);
   notice('修正しました。','Ok');
