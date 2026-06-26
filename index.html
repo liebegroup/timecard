@@ -139,7 +139,6 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
     <div id="tPunch">
       <div style="font-size:30px;font-weight:500;text-align:center;padding:8px 0 4px;color:var(--tx)" id="clock"></div>
       <div style="text-align:center;font-size:12px;color:var(--tx2);margin-bottom:12px" id="dateStr"></div>
-      <div id="noticeArea"></div>
       <div class="card">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap">
           <span style="font-size:13px;font-weight:500" id="statusTxt"></span>
@@ -165,6 +164,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
         <i class="ti ti-map-pin" style="color:#185FA5"></i>
         <span>本日の勤務地: </span><span id="workSiteName" style="font-weight:500;color:var(--tx)"></span>
       </div>
+      <div id="noticeArea" style="margin-top:8px"></div>
     </div>
 
     <!-- 履歴 -->
@@ -353,9 +353,11 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
  * v1.5.6 - GAS URL更新(v8)
  * v1.5.7 - 打刻画面レイアウト改善
  * v1.5.8 - GAS URL更新(v9)
+ * v1.5.9 - 打刻コメントを最下段に移動
+ * v1.6.0 - GAS URL更新(v10) workSiteId日付変換防止
  * =============================================
  */
-const GAS = 'https://script.google.com/macros/s/AKfycbxJEUaYD7IWL_bFqLwbq9cqp_M3EbMj7WhtahTJC3Edg7gHYXBpAqVgwL-Y9NMCV4FE/exec';
+const GAS = 'https://script.google.com/macros/s/AKfycbxKCAHEyVJOuYmNDg1sbbDXNqcUE8HA71ABLYr6bSSeBa8II4GVxJk2dtezZaIXGksd/exec';
 
 const EMP = {
   seishain:   {label:'正社員',         h:8, shortage:true},
@@ -372,7 +374,7 @@ const INITIAL_PW = '1234'; // 初期パスワード（管理者がここを変�
 // マイナー: 機能追加
 // パッチ  : バグ修正・細かい調整
 // =============================================
-const VERSION = '1.5.8';
+const VERSION = '1.6.0';
 const DOW = ['日','月','火','水','木','金','土'];
 
 // =============================================
