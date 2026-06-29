@@ -360,6 +360,17 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
   </div>
 </div>
 
+<!-- 編集履歴モーダル -->
+<div id="historyModal" class="modal-bg" style="display:none">
+  <div class="modal" style="width:520px">
+    <div class="row" style="margin-bottom:14px">
+      <span style="font-size:14px;font-weight:500"><i class="ti ti-history"></i> 編集履歴</span>
+      <button class="btn" style="padding:3px 8px" onclick="closeHistoryModal()"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="historyModalContent" style="max-height:400px;overflow-y:auto"></div>
+  </div>
+</div>
+
 <!-- PW/移動モーダル -->
 <div id="pwModal" class="modal-bg" style="display:none">
   <div class="modal" style="width:300px">
@@ -415,9 +426,13 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
  * v1.7.2 - 勤務表打刻漏れ表示修正
  * v1.7.3 - CSVエクスポート関数追加
  * v1.7.4 - 職員追加ボタンのID文字列化修正
+ * v1.7.5 - 勤務表セルクリックで修正
+ * v1.7.6 - siteId日付変換防止(GAS v13対応)
+ * v1.8.0 - staff修正履歴保存・管理者が元に戻せる機能
+ * v1.8.1 - GAS URL更新(v14)
  * =============================================
  */
-const GAS = 'https://script.google.com/macros/s/AKfycbx_BPbqcPEIPSN6-PMXhdkWSZl3l-fYf-fBClvJ8D6C3an-kbe7d4krjc5Vly3i0a5h/exec';
+const GAS = 'https://script.google.com/macros/s/AKfycbz1umW3ZnDdtrh-nsixlNp3WiGV9HB8yfbgC67AM8E2jrE7aSAE9_EeFYPsM25OhyDB/exec';
 
 const EMP = {
   seishain:   {label:'正社員',         h:8, shortage:true},
@@ -434,7 +449,7 @@ const INITIAL_PW = '1234'; // 初期パスワード（管理者がここを変�
 // マイナー: 機能追加
 // パッチ  : バグ修正・細かい調整
 // =============================================
-const VERSION = '1.7.4';
+const VERSION = '1.8.1';
 const DOW = ['日','月','火','水','木','金','土'];
 
 // 打刻漏れ判定（出勤あり・退勤なし）
@@ -614,15 +629,20 @@ async function loadMaster(){
   const d=await api({action:'getMaster'});
   if(d.error)throw new Error(d.error);
   sites=d.sites.map(s=>({...s,id:String(s.id)}));
-  users=d.users.map(u=>({
-    ...u,
-    id:parseId(u.id),         // A0001→1, A00001→1 どちらも対応
-    rawId:String(u.id),
-    prefix:getPrefix(u.id),
-    siteId:String(u.siteId||''),
-    employmentType:(u.employmentType&&u.employmentType!=='')?u.employmentType:'seishain',
-    pw:String(u.pw)
-  }));
+  users=d.users.map(u=>{
+    // SI:プレフィックスをデコード（日付変換防止用）
+    let sid=String(u.siteId||'');
+    if(sid.startsWith('SI:'))sid=sid.slice(3);
+    return {
+      ...u,
+      id:parseId(u.id),
+      rawId:String(u.id),
+      prefix:getPrefix(u.id),
+      siteId:sid,
+      employmentType:(u.employmentType&&u.employmentType!=='')?u.employmentType:'seishain',
+      pw:String(u.pw)
+    };
+  });
   if(sites.length)document.getElementById('nextSiteId')||(window.nextSiteId=Math.max(...sites.map(s=>s.id))+1);
   // 事業所IDは手動入力のため自動採番しない
   window.nextUserId=users.length?Math.max(...users.map(u=>u.id))+1:1;
@@ -682,7 +702,7 @@ async function saveRec(uid,inDate){
 async function saveUser(u){
   showSync('保存中...');
   try{
-    await api({action:'saveUser',id:u.rawId||fmtId(u.id,u.prefix),name:u.name,role:u.role,pw:String(u.pw),siteId:u.siteId,employmentType:u.employmentType||'seishain'});
+    await api({action:'saveUser',id:u.rawId||fmtId(u.id,u.prefix),name:u.name,role:u.role,pw:String(u.pw),siteId:String(u.siteId||''),employmentType:u.employmentType||'seishain'});
     document.getElementById('syncMsg').textContent='保存完了 ✓';
   }catch(e){document.getElementById('syncMsg').textContent='保存失敗';}
   hideSync();
@@ -1093,7 +1113,12 @@ function renderHistory(){
       <td>${fWork(workMins(r))}</td>
       <td style="${mn>0?'color:#533AB7;font-weight:500':''}">${mn>0?fMin(mn):'—'}</td>
       <td style="color:var(--tx3);font-size:10px">
-        ${r.editedBy?`<span title="修正: ${r.editedBy} ${r.editedAt||''}"><i class="ti ti-pencil" style="font-size:10px;color:#185FA5"></i></span>`:'<i class="ti ti-pencil" style="font-size:11px"></i>'}
+        ${r.editedBy
+          ?`<span style="display:flex;gap:4px;align-items:center">
+              <i class="ti ti-pencil" style="font-size:10px;color:#185FA5" title="修正: ${r.editedBy} ${r.editedAt||''}"></i>
+              ${cu.role==='admin'?`<button onclick="event.stopPropagation();showEditHistory('${ds}')" style="font-size:9px;padding:1px 5px;border:0.5px solid var(--bd);border-radius:3px;background:var(--bg);cursor:pointer;color:#185FA5">履歴</button>`:''}
+            </span>`
+          :'<i class="ti ti-pencil" style="font-size:11px"></i>'}
       </td>
     </tr>`;
   }
@@ -1446,10 +1471,14 @@ function renderMatrix(){
       if(!x.work){
         let rr=records[recKey(u.id,ds)];
         let isMissing=isMissingPunch(rr,ds);
-        cells+=`<td style="${isT?'outline:1.5px solid var(--txI);outline-offset:-1px;':''}${isMissing?'background:#FEF9E6;':''}"><div class="mc ${dow===0||dow===6?'mHol':'cel-empty'}" style="color:${isMissing?'var(--txW)':'var(--tx3)'}">${isMissing?'⚠0':dow===0||dow===6?'休':'—'}</div></td>`;
+        cells+=`<td style="${isMissing?'cursor:pointer;':dow===0||dow===6?'':'cursor:pointer;'}${isT?'outline:1.5px solid var(--txI);outline-offset:-1px;':''}${isMissing?'background:#FEF9E6;':''}" ${isMissing||(!x.work&&dow!==0&&dow!==6)?`onclick="openEditForRec(${u.id},'${ds}')" title="クリックして追加"`:''}>
+          <div class="mc ${dow===0||dow===6?'mHol':'cel-empty'}" style="color:${isMissing?'var(--txW)':'var(--tx3)'}">
+            ${isMissing?'⚠0':dow===0||dow===6?'休':'—'}
+          </div>
+        </td>`;
       }else{
         uTotal+=x.work;colTots[i]+=x.work;
-        cells+=`<td style="${isT?'outline:1.5px solid var(--txI);outline-offset:-1px;':''}"><div class="mc ${x.night?'mNight':'mNorm'}">${(x.work/60).toFixed(1)}</div></td>`;
+        cells+=`<td style="cursor:pointer;${isT?'outline:1.5px solid var(--txI);outline-offset:-1px;':''}" onclick="openEditForRec(${u.id},'${ds}')" title="${(x.work/60).toFixed(1)}h クリックして修正"><div class="mc ${x.night?'mNight':'mNorm'}">${(x.work/60).toFixed(1)}</div></td>`;
       }
     });
     let isOT=uTotal>sotei;
@@ -1758,6 +1787,60 @@ function loadRecToForm(){
   }
 }
 function closeEdit(){document.getElementById('editModal').style.display='none';}
+
+function closeHistoryModal(){document.getElementById('historyModal').style.display='none';}
+
+async function showEditHistory(inDate){
+  let uid=histUid;
+  let u=users.find(x=>x.id===uid);
+  let recordId=fmtId(uid,u?.prefix)+'_'+inDate;
+  document.getElementById('historyModalContent').innerHTML='<div style="text-align:center;padding:20px"><div class="spinner"></div></div>';
+  document.getElementById('historyModal').style.display='flex';
+  try{
+    let d=await api({action:'getEditHistory',recordId});
+    let hist=d.history||[];
+    if(!hist.length){
+      document.getElementById('historyModalContent').innerHTML='<div class="notice nInfo">編集履歴がありません</div>';
+      return;
+    }
+    let rows=hist.map(h=>`
+      <div style="border:0.5px solid var(--bd2);border-radius:var(--r);padding:10px;margin-bottom:8px;background:var(--bg2)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px">
+          <span style="font-size:12px;font-weight:500;color:var(--tx)">${h.editedBy||'—'}</span>
+          <span style="font-size:11px;color:var(--tx2)">${h.editedAt||'—'}</span>
+        </div>
+        <div style="font-size:12px;color:var(--tx2);margin-bottom:8px">
+          出勤: ${h.inTs?new Date(Number(h.inTs)).toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}):'—'}
+          　退勤: ${h.outTs?new Date(Number(h.outTs)).toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}):'—'}
+          　勤務地: ${h.workSiteId?sites.find(s=>String(s.id)===String(h.workSiteId))?.name||h.workSiteId:'—'}
+        </div>
+        <button onclick="revertRecord('${h.id}','${inDate}')" class="btn btn-p" style="font-size:11px;padding:3px 10px">
+          <i class="ti ti-arrow-back-up"></i> この内容に戻す
+        </button>
+      </div>`).join('');
+    document.getElementById('historyModalContent').innerHTML=rows;
+  }catch(e){
+    document.getElementById('historyModalContent').innerHTML='<div class="notice nErr">読み込み失敗</div>';
+  }
+}
+
+async function revertRecord(histId, inDate){
+  if(!confirm('この内容に戻しますか？'))return;
+  showSync('元に戻し中...');
+  try{
+    await api({action:'revertRecord',histId});
+    document.getElementById('syncMsg').textContent='元に戻しました ✓';
+    closeHistoryModal();
+    // データを再取得して画面を更新
+    loadedMonths.delete(inDate.slice(0,7));
+    await loadMonth(inDate.slice(0,7),true);
+    renderHistory();
+    notice('元のデータに戻しました','Ok');
+  }catch(e){
+    document.getElementById('syncMsg').textContent='失敗';
+  }
+  hideSync();
+}
 async function saveEdit(){
   let uid=parseInt(document.getElementById('editUser').value);
   if(uid!==cu.id&&cu.role!=='admin'){alert('他の職員の記録は管理者のみ修正できます');return;}
@@ -1819,6 +1902,7 @@ async function saveEdit(){
   // 修正者・修正日時を記録
   r.editedBy = fmtId(cu.id, cu.prefix) + ' ' + cu.name;
   r.editedAt = new Date().toISOString().slice(0,19).replace('T',' ');
+  // staff の場合は元データ保存フラグをセット（GAS側で処理）
   closeEdit();
   await saveRec(uid,inDate);
   notice('修正しました。','Ok');
