@@ -374,6 +374,37 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
   </div>
 </div>
 
+<!-- 事業所編集モーダル -->
+<div id="siteEditModal" class="modal-bg" style="display:none">
+  <div class="modal" style="width:380px">
+    <div class="row" style="margin-bottom:14px">
+      <span style="font-size:14px;font-weight:500"><i class="ti ti-building-cog"></i> 事業所情報を修正</span>
+      <button class="btn" style="padding:3px 8px" onclick="closeSiteEdit()"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="siteEditErr" class="notice nErr" style="display:none;margin-bottom:10px"></div>
+    <div style="margin-bottom:10px">
+      <label>事業所ID</label>
+      <div id="siteEditId" style="font-size:13px;font-weight:500;padding:7px 10px;background:var(--bg2);border-radius:var(--r);color:var(--tx2)"></div>
+    </div>
+    <div style="margin-bottom:10px"><label>事業所名</label><input type="text" id="siteEditName" class="ifield" placeholder="事業所名"></div>
+    <div style="margin-bottom:10px">
+      <label>カラー</label>
+      <div style="display:flex;gap:5px;margin-top:4px" id="siteEditColorPicker">
+        ${SITE_COLORS.map(c=>`<button onclick="pickSiteEditColor('${c}')" style="width:24px;height:24px;border-radius:50%;background:${c};border:2px solid transparent;cursor:pointer" id="sec${c.replace('#','')}"></button>`).join('')}
+      </div>
+      <input type="text" id="siteEditColorCustom" class="ifield" style="margin-top:8px" placeholder="カスタムカラー (#185FA5など)" oninput="updateSiteEditColorPreview()">
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+        <span id="siteEditColorPreview" style="width:24px;height:24px;border-radius:50%;background:#888;flex-shrink:0;display:inline-block"></span>
+        <span style="font-size:11px;color:var(--tx2)">選択中のカラー</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:7px">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveSiteEdit()">保存</button>
+      <button class="btn" style="flex:1;justify-content:center" onclick="closeSiteEdit()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
 <!-- 職員編集モーダル -->
 <div id="userEditModal" class="modal-bg" style="display:none">
   <div class="modal" style="width:380px">
@@ -494,6 +525,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
  * v1.9.2 - 修正理由・管理者記載欄を追加
  * v1.9.3 - 履歴画面に修正済みマーク表示
  * v1.9.4 - GAS URL更新(v18)
+ * v1.9.5 - 修正理由プルダウン修正・事業所編集機能追加
  * =============================================
  */
 const GAS = 'https://script.google.com/macros/s/AKfycbxA9IGdSc7apz4X2fahan4X3thOe2DZIlzR-JqoFPscfufvaMOyJcfwBAFX1qVsgB8K/exec';
@@ -516,7 +548,7 @@ let editReasons = ['打刻忘れ', '打刻ミス', '記録訂正', 'その他'];
 // マイナー: 機能追加
 // パッチ  : バグ修正・細かい調整
 // =============================================
-const VERSION = '1.9.4';
+const VERSION = '1.9.5';
 const DOW = ['日','月','火','水','木','金','土'];
 
 // 打刻漏れ判定（出勤あり・退勤なし）
@@ -1589,6 +1621,7 @@ function renderAdmin(){
           <span style="margin-left:6px;font-size:11px;color:var(--tx3);font-family:var(--font-mono)">${s.id}</span>
           <span style="margin-left:8px;font-size:12px;color:var(--tx2)">${staff.length}名</span>
         </div>
+        <button class="btn btn-p" style="padding:3px 9px;font-size:12px;margin-right:4px" onclick="openSiteEdit('${s.id}')"><i class="ti ti-pencil"></i></button>
         <button class="btn btn-d" style="padding:3px 9px;font-size:12px" onclick="doRemoveSite('${s.id}')"${sites.length<=1?' disabled':''}><i class="ti ti-trash"></i></button>
       </div>
       <table class="tbl" style="margin-bottom:10px;table-layout:fixed;width:100%">
@@ -1709,6 +1742,72 @@ function fmtSiteIdInput(el){
   if(v.length>5) v=v.slice(0,5)+'-'+v.slice(5);
   if(v.length>9) v=v.slice(0,9);
   el.value=v;
+}
+
+let siteEditColor='#185FA5';
+
+function openSiteEdit(sid){
+  let s=sites.find(x=>String(x.id)===String(sid));
+  if(!s){alert('事業所が見つかりません');return;}
+  document.getElementById('siteEditId').textContent=s.id;
+  document.getElementById('siteEditName').value=s.name;
+  document.getElementById('siteEditErr').style.display='none';
+  siteEditColor=s.color||'#185FA5';
+  document.getElementById('siteEditColorCustom').value=siteEditColor;
+  updateSiteEditColorPreview();
+  // カラーピッカーの選択状態を更新
+  SITE_COLORS.forEach(c=>{
+    let el=document.getElementById('sec'+c.replace('#',''));
+    if(el)el.style.border=c===siteEditColor?'2px solid var(--tx)':'2px solid transparent';
+  });
+  document.getElementById('siteEditModal').dataset.sid=String(sid);
+  document.getElementById('siteEditModal').style.display='flex';
+}
+
+function closeSiteEdit(){document.getElementById('siteEditModal').style.display='none';}
+
+function pickSiteEditColor(c){
+  siteEditColor=c;
+  document.getElementById('siteEditColorCustom').value=c;
+  updateSiteEditColorPreview();
+  SITE_COLORS.forEach(col=>{
+    let el=document.getElementById('sec'+col.replace('#',''));
+    if(el)el.style.border=col===c?'2px solid var(--tx)':'2px solid transparent';
+  });
+}
+
+function updateSiteEditColorPreview(){
+  let c=document.getElementById('siteEditColorCustom').value.trim();
+  if(c)siteEditColor=c;
+  document.getElementById('siteEditColorPreview').style.background=siteEditColor;
+}
+
+async function saveSiteEdit(){
+  let sid=document.getElementById('siteEditModal').dataset.sid;
+  let s=sites.find(x=>String(x.id)===String(sid));
+  if(!s)return;
+  let name=document.getElementById('siteEditName').value.trim();
+  let e=document.getElementById('siteEditErr');
+  e.style.display='none';
+  if(!name){e.textContent='事業所名を入力してください';e.style.display='block';return;}
+  s.name=name;
+  s.color=siteEditColor;
+  showSync('保存中...');
+  try{
+    await api({action:'saveSite',id:s.id,name:s.name,color:s.color});
+    document.getElementById('syncMsg').textContent='保存完了 ✓';
+  }catch(ex){document.getElementById('syncMsg').textContent='保存失敗';}
+  hideSync();
+  closeSiteEdit();
+  renderAdmin();
+  fillLoginSelects();
+  // ナビバーの事業所名も更新
+  let ns=document.getElementById('navSite');
+  if(cu&&String(cu.siteId)===String(sid)&&ns){
+    ns.textContent=s.name;
+    ns.style.cssText=`background:${s.color}22;color:${s.color};padding:3px 9px;border-radius:var(--r);font-size:11px;font-weight:500`;
+  }
+  notice(name+'の情報を更新しました','Ok');
 }
 
 async function doAddSite(){
