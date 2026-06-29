@@ -389,13 +389,19 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
     <div style="margin-bottom:10px"><label>事業所名</label><input type="text" id="siteEditName" class="ifield" placeholder="事業所名"></div>
     <div style="margin-bottom:10px">
       <label>カラー</label>
-      <div style="display:flex;gap:5px;margin-top:4px" id="siteEditColorPicker">
-        ${SITE_COLORS.map(c=>`<button onclick="pickSiteEditColor('${c}')" style="width:24px;height:24px;border-radius:50%;background:${c};border:2px solid transparent;cursor:pointer" id="sec${c.replace('#','')}"></button>`).join('')}
+      <div style="display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap">
+        <!-- ネイティブカラーピッカー -->
+        <input type="color" id="siteEditColorNative" style="width:44px;height:44px;border:0.5px solid var(--bd);border-radius:var(--r);cursor:pointer;padding:2px;background:var(--bg)" oninput="onSiteEditColorNative()">
+        <div style="flex:1;min-width:120px">
+          <div style="font-size:11px;color:var(--tx2);margin-bottom:4px">プリセット</div>
+          <div style="display:flex;gap:5px;flex-wrap:wrap">
+            ${SITE_COLORS.map(c=>`<button onclick="pickSiteEditColor('${c}')" style="width:26px;height:26px;border-radius:50%;background:${c};border:2px solid transparent;cursor:pointer;flex-shrink:0" id="sec${c.replace('#','')}"></button>`).join('')}
+          </div>
+        </div>
       </div>
-      <input type="text" id="siteEditColorCustom" class="ifield" style="margin-top:8px" placeholder="カスタムカラー (#185FA5など)" oninput="updateSiteEditColorPreview()">
-      <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
-        <span id="siteEditColorPreview" style="width:24px;height:24px;border-radius:50%;background:#888;flex-shrink:0;display:inline-block"></span>
-        <span style="font-size:11px;color:var(--tx2)">選択中のカラー</span>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+        <span id="siteEditColorPreview" style="width:26px;height:26px;border-radius:50%;background:#888;flex-shrink:0;display:inline-block;border:0.5px solid var(--bd)"></span>
+        <input type="text" id="siteEditColorCustom" class="ifield" style="flex:1" placeholder="#185FA5" oninput="onSiteEditColorText()">
       </div>
     </div>
     <div style="display:flex;gap:7px">
@@ -526,6 +532,8 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
  * v1.9.3 - 履歴画面に修正済みマーク表示
  * v1.9.4 - GAS URL更新(v18)
  * v1.9.5 - 修正理由プルダウン修正・事業所編集機能追加
+ * v1.9.6 - 事業所カラーピッカー追加
+ * v1.9.7 - 修正モーダル閉じ時に選択状態をリセット
  * =============================================
  */
 const GAS = 'https://script.google.com/macros/s/AKfycbxA9IGdSc7apz4X2fahan4X3thOe2DZIlzR-JqoFPscfufvaMOyJcfwBAFX1qVsgB8K/exec';
@@ -548,7 +556,7 @@ let editReasons = ['打刻忘れ', '打刻ミス', '記録訂正', 'その他'];
 // マイナー: 機能追加
 // パッチ  : バグ修正・細かい調整
 // =============================================
-const VERSION = '1.9.5';
+const VERSION = '1.9.7';
 const DOW = ['日','月','火','水','木','金','土'];
 
 // 打刻漏れ判定（出勤あり・退勤なし）
@@ -1732,6 +1740,13 @@ function editReason(i){
 let pickedColor=SITE_COLORS[0];
 function pickColor(c){
   pickedColor=c;
+  let native=document.getElementById('colorPickerNative');
+  if(native&&/^#[0-9A-Fa-f]{6}$/.test(c))native.value=c;
+  SITE_COLORS.forEach(col=>{let el=document.getElementById('cp'+col.replace('#',''));if(el)el.style.border=col===c?'2px solid var(--tx)':'2px solid transparent';});
+}
+function onColorPickerNative(){
+  let c=document.getElementById('colorPickerNative').value;
+  pickedColor=c;
   SITE_COLORS.forEach(col=>{let el=document.getElementById('cp'+col.replace('#',''));if(el)el.style.border=col===c?'2px solid var(--tx)':'2px solid transparent';});
 }
 
@@ -1754,6 +1769,10 @@ function openSiteEdit(sid){
   document.getElementById('siteEditErr').style.display='none';
   siteEditColor=s.color||'#185FA5';
   document.getElementById('siteEditColorCustom').value=siteEditColor;
+  // ネイティブカラーピッカーの値を設定（#RRGGBB形式のみ対応）
+  if(/^#[0-9A-Fa-f]{6}$/.test(siteEditColor)){
+    document.getElementById('siteEditColorNative').value=siteEditColor;
+  }
   updateSiteEditColorPreview();
   // カラーピッカーの選択状態を更新
   SITE_COLORS.forEach(c=>{
@@ -1769,6 +1788,7 @@ function closeSiteEdit(){document.getElementById('siteEditModal').style.display=
 function pickSiteEditColor(c){
   siteEditColor=c;
   document.getElementById('siteEditColorCustom').value=c;
+  document.getElementById('siteEditColorNative').value=c;
   updateSiteEditColorPreview();
   SITE_COLORS.forEach(col=>{
     let el=document.getElementById('sec'+col.replace('#',''));
@@ -1776,9 +1796,27 @@ function pickSiteEditColor(c){
   });
 }
 
-function updateSiteEditColorPreview(){
+function onSiteEditColorNative(){
+  let c=document.getElementById('siteEditColorNative').value;
+  siteEditColor=c;
+  document.getElementById('siteEditColorCustom').value=c;
+  updateSiteEditColorPreview();
+  SITE_COLORS.forEach(col=>{
+    let el=document.getElementById('sec'+col.replace('#',''));
+    if(el)el.style.border=col===c?'2px solid var(--tx)':'2px solid transparent';
+  });
+}
+
+function onSiteEditColorText(){
   let c=document.getElementById('siteEditColorCustom').value.trim();
-  if(c)siteEditColor=c;
+  if(/^#[0-9A-Fa-f]{6}$/.test(c)){
+    siteEditColor=c;
+    document.getElementById('siteEditColorNative').value=c;
+    updateSiteEditColorPreview();
+  }
+}
+
+function updateSiteEditColorPreview(){
   document.getElementById('siteEditColorPreview').style.background=siteEditColor;
 }
 
@@ -2054,7 +2092,18 @@ function loadRecToForm(){
     disp.textContent='この日の記録はまだありません';disp.style.display='block';
   }
 }
-function closeEdit(){document.getElementById('editModal').style.display='none';}
+function closeEdit(){
+  document.getElementById('editModal').style.display='none';
+  // 修正理由をリセット
+  let rSel=document.getElementById('editReason');
+  if(rSel)rSel.value='';
+  let rowWrap=document.getElementById('editReasonOtherWrap');
+  let rowOther=document.getElementById('editReasonOther');
+  let rowAdmin=document.getElementById('editAdminNote');
+  if(rowWrap)rowWrap.style.display='none';
+  if(rowOther)rowOther.value='';
+  if(rowAdmin)rowAdmin.value='';
+}
 
 function onEditReasonChange(){
   let v=document.getElementById('editReason').value;
