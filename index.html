@@ -534,6 +534,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
  * v1.9.5 - 修正理由プルダウン修正・事業所編集機能追加
  * v1.9.6 - 事業所カラーピッカー追加
  * v1.9.7 - 修正モーダル閉じ時に選択状態をリセット
+ * v1.9.8 - 修正理由プルダウン初期化を_openEditに追加
  * =============================================
  */
 const GAS = 'https://script.google.com/macros/s/AKfycbxA9IGdSc7apz4X2fahan4X3thOe2DZIlzR-JqoFPscfufvaMOyJcfwBAFX1qVsgB8K/exec';
@@ -556,7 +557,7 @@ let editReasons = ['打刻忘れ', '打刻ミス', '記録訂正', 'その他'];
 // マイナー: 機能追加
 // パッチ  : バグ修正・細かい調整
 // =============================================
-const VERSION = '1.9.7';
+const VERSION = '1.9.8';
 const DOW = ['日','月','火','水','木','金','土'];
 
 // 打刻漏れ判定（出勤あり・退勤なし）
@@ -2051,6 +2052,18 @@ function _openEdit(targetUid,date){
   document.getElementById('editShiftAuto').checked=true;
   let ed=document.getElementById('editRecDisp');
   ed.style.display='none';ed.className='notice nInfo';
+  // 修正理由プルダウンを初期化
+  let rSel=document.getElementById('editReason');
+  if(rSel){
+    rSel.innerHTML='<option value="">選択してください</option>'+editReasons.map(r=>`<option value="${r}">${r}</option>`).join('');
+    rSel.value='';
+  }
+  let rowWrap=document.getElementById('editReasonOtherWrap');
+  if(rowWrap)rowWrap.style.display='none';
+  let rowOther=document.getElementById('editReasonOther');
+  if(rowOther)rowOther.value='';
+  let rowAdmin=document.getElementById('editAdminNote');
+  if(rowAdmin)rowAdmin.value='';
   m.style.display='flex';
   loadRecToForm();
 }
