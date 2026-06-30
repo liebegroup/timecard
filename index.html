@@ -595,9 +595,11 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
  * v2.3.6 - タイムアウト時のエラーメッセージを改善（実際は保存成功している場合への配慮）
  * v2.3.7 - 異動日入力欄の年6桁入力バグ対策
  * v2.3.8 - GAS URL更新(v27) jstStrToTsのDate.toString形式対応
+ * v2.3.9 - pendingDate正規化処理を追加（日付変換問題への耐性向上）
+ * v2.4.0 - GAS URL更新(v28) pendingDate日付変換防止
  * =============================================
  */
-const GAS = 'https://script.google.com/macros/s/AKfycbwHEbQGWH168Kk66Zod5pUIemS1XmNrYBVdhMHnusOcN9AENc8D5yLl2cTojsvXa0aG/exec';
+const GAS = 'https://script.google.com/macros/s/AKfycbwRWE-TwIX7vHwoD5dfpwBjlZcZDHqV5IFLQjhuogN7J1lNW-Fq9wsa3uIWsTzVDF3o/exec';
 
 const EMP = {
   seishain:   {label:'正社員',         h:8, shortage:true},
@@ -617,7 +619,7 @@ let editReasons = ['打刻忘れ', '打刻ミス', '記録訂正', 'その他'];
 // マイナー: 機能追加
 // パッチ  : バグ修正・細かい調整
 // =============================================
-const VERSION = '2.3.8';
+const VERSION = '2.4.0';
 const DOW = ['日','月','火','水','木','金','土'];
 
 // 打刻漏れ判定（出勤あり・退勤なし）
@@ -1031,11 +1033,26 @@ function onLsSite(){
   document.getElementById('loginErr').style.display='none';
 }
 
+// pendingDateを YYYY-MM-DD 形式の文字列に正規化（Date.toString形式の旧データにも対応）
+function normalizePendingDate(val){
+  if(!val)return null;
+  let s=String(val).trim();
+  // すでにYYYY-MM-DD形式
+  if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.slice(0,10);
+  // Date.toString形式などをDateオブジェクトでパース
+  let d=new Date(s);
+  if(!isNaN(d.getTime())){
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+  return null;
+}
+
 // 異動予約の自動適用チェック（ログイン時に毎回呼ばれる）
 async function applyPendingMoveIfDue(u){
   if(!u.pendingSiteId||!u.pendingDate)return false;
-  if(u.pendingDate<=TODAY_STR){
-    let oldSiteId=u.siteId;
+  let normalizedDate=normalizePendingDate(u.pendingDate);
+  if(!normalizedDate)return false;
+  if(normalizedDate<=TODAY_STR){
     u.siteId=u.pendingSiteId;
     u.pendingSiteId=null;
     u.pendingDate=null;
@@ -1944,7 +1961,7 @@ function renderAdmin(){
           <td style="vertical-align:middle">
             <span class="badge ${u.role==='admin'?'bAdmin':'bStaff'}">${u.role==='admin'?'管理者':'職員'}</span>
             <div style="font-size:10px;color:var(--tx2);margin-top:2px">${EMP[u.employmentType]?.label||'—'}</div>
-            ${u.pendingSiteId?`<div style="font-size:9px;color:var(--txW);margin-top:2px;white-space:nowrap"><i class="ti ti-clock"></i> ${u.pendingDate}〜異動予約</div>`:''}
+            ${u.pendingSiteId?`<div style="font-size:9px;color:var(--txW);margin-top:2px;white-space:nowrap"><i class="ti ti-clock"></i> ${normalizePendingDate(u.pendingDate)||u.pendingDate}〜異動予約</div>`:''}
           </td>
           <td style="vertical-align:middle">
             <span class="sdot ${getTodayRec(u.id).inTs?'dIn':'dOff'}"></span>
@@ -2367,7 +2384,7 @@ function openMove(uid){
   document.getElementById('pwErr').style.display='none';
   let pendingInfo=u.pendingSiteId
     ?`<div class="notice nWarn" style="margin-bottom:10px;font-size:12px">
-        <i class="ti ti-clock"></i> 異動予約あり: ${sites.find(s=>String(s.id)===String(u.pendingSiteId))?.name||u.pendingSiteId}（${u.pendingDate}〜）
+        <i class="ti ti-clock"></i> 異動予約あり: ${sites.find(s=>String(s.id)===String(u.pendingSiteId))?.name||u.pendingSiteId}（${normalizePendingDate(u.pendingDate)||u.pendingDate}〜）
         <br><button class="btn btn-d" style="font-size:10px;padding:2px 8px;margin-top:4px" onclick="cancelPendingMove(${uid})">予約を取り消す</button>
       </div>`:'';
   document.getElementById('pwFields').innerHTML=`
