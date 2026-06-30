@@ -133,7 +133,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
       <button class="tab" id="tabAd" style="display:none" onclick="showTab('admin')"><i class="ti ti-settings"></i> 管理</button>
     </div>
   </div>
-  <div style="padding:16px 20px;min-height:calc(100vh - 110px)">
+  <div style="padding:12px 20px 16px;min-height:calc(100vh - 110px)">
 
     <!-- 打刻 -->
     <div id="tPunch">
@@ -170,7 +170,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
 
     <!-- 履歴 -->
     <div id="tHistory" style="display:none">
-      <div style="position:sticky;top:101px;z-index:98;background:var(--bg3);padding-top:2px;padding-bottom:8px;margin:-2px -2px 0">
+      <div style="position:sticky;top:101px;z-index:98;background:var(--bg3);padding-top:8px;padding-bottom:8px">
         <div class="row" style="margin-bottom:10px;flex-wrap:wrap;gap:6px">
           <div style="font-size:13px;font-weight:500">勤務履歴</div>
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
@@ -192,22 +192,23 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
 
     <!-- 集計 -->
     <div id="tReport" style="display:none">
-      <div style="position:sticky;top:101px;z-index:98;background:var(--bg3);padding-top:2px;padding-bottom:8px;margin:-2px -2px 0">
-        <div class="row" style="margin-bottom:10px;flex-wrap:wrap;gap:6px">
+      <div style="position:sticky;top:101px;z-index:98;background:var(--bg3)">
+        <div class="row" style="margin-bottom:10px;flex-wrap:wrap;gap:6px;padding-top:2px">
           <div style="font-size:13px;font-weight:500">月次集計</div>
           <div style="display:flex;gap:6px;align-items:center">
             <input type="month" id="repM" class="ifield" style="width:auto;padding:5px 9px" onchange="loadAndRender('report')">
             <button class="btn" style="font-size:11px;padding:4px 10px" onclick="loadAndRender('report',true)"><i class="ti ti-refresh"></i></button>
           </div>
         </div>
-        <div id="repFilters" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+        <div id="repFilters" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
+        <div id="repFixed" style="padding-bottom:8px"></div>
       </div>
       <div id="repContent"></div>
     </div>
 
     <!-- 状況 -->
     <div id="tRealtime" style="display:none">
-      <div style="position:sticky;top:101px;z-index:98;background:var(--bg3);padding-top:2px;padding-bottom:8px;margin:-2px -2px 0">
+      <div style="position:sticky;top:101px;z-index:98;background:var(--bg3);padding-top:8px;padding-bottom:8px">
         <div class="row">
           <div style="font-size:13px;font-weight:500"><i class="ti ti-radio"></i> リアルタイム打刻状況</div>
           <div style="display:flex;gap:6px;align-items:center">
@@ -221,21 +222,22 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
 
     <!-- 全社 -->
     <div id="tCompany" style="display:none">
-      <div style="position:sticky;top:101px;z-index:98;background:var(--bg3);padding-top:2px;padding-bottom:8px;margin:-2px -2px 0">
-        <div class="row">
+      <div style="position:sticky;top:101px;z-index:98;background:var(--bg3)">
+        <div class="row" style="padding-top:2px">
           <div style="font-size:13px;font-weight:500"><i class="ti ti-building"></i> 全社集計</div>
           <div style="display:flex;gap:6px;align-items:center">
             <input type="month" id="coM" class="ifield" style="width:auto;padding:5px 9px" onchange="loadAndRender('company')">
             <button class="btn" style="font-size:11px;padding:4px 10px" onclick="loadAndRender('company',true)"><i class="ti ti-refresh"></i></button>
           </div>
         </div>
+        <div id="coFixed" style="padding-top:8px;padding-bottom:8px"></div>
       </div>
       <div id="coContent"></div>
     </div>
 
     <!-- 勤務表 -->
     <div id="tMatrix" style="display:none">
-      <div style="position:sticky;top:101px;z-index:98;background:var(--bg3);padding-top:2px;padding-bottom:8px;margin:-2px -2px 0">
+      <div style="position:sticky;top:101px;z-index:98;background:var(--bg3);padding-top:8px;padding-bottom:8px">
         <div class="row" style="margin-bottom:10px;flex-wrap:wrap;gap:6px">
           <div style="font-size:13px;font-weight:500"><i class="ti ti-table"></i> 勤務表</div>
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
@@ -551,6 +553,8 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
  * v2.0.3 - 各タブのツールバー部分も固定表示に対応
  * v2.0.4 - api関数に詳細ログを追加（デバッグ用）
  * v2.0.5 - #appのoverflow-x設定を削除しsticky固定を有効化
+ * v2.0.6 - 集計・全社タブの固定範囲を拡張、上部チラつき修正
+ * v2.0.7 - 負のmarginを削除しチラつきをさらに改善
  * =============================================
  */
 const GAS = 'https://script.google.com/macros/s/AKfycbzxE6QiIfDym8yNojfkr619dCIsM2IAG8R7vj4i-BOZ_NucEDtjqijRrFK4xE-5a3-V/exec';
@@ -573,7 +577,7 @@ let editReasons = ['打刻忘れ', '打刻ミス', '記録訂正', 'その他'];
 // マイナー: 機能追加
 // パッチ  : バグ修正・細かい調整
 // =============================================
-const VERSION = '2.0.5';
+const VERSION = '2.0.7';
 const DOW = ['日','月','火','水','木','金','土'];
 
 // 打刻漏れ判定（出勤あり・退勤なし）
@@ -1378,30 +1382,33 @@ function renderReport(){
     else if(st.ot>0)statusHtml=`<div class="notice nErr" style="margin-bottom:12px"><i class="ti ti-clock-plus"></i> 時間外労働: <b>${fWork(st.ot)}</b></div>`;
     else statusHtml=`<div class="notice nOk" style="margin-bottom:12px"><i class="ti ti-check"></i> 所定時間達成</div>`;
   }
+  document.getElementById('repFixed').innerHTML=`
+    <div>
+      <div class="notice nInfo" style="font-size:12px;margin-bottom:10px">
+        【変形労働時間制】${y}年${mo}月　所定: <b>${fWork(st.sotei)}</b>　職種: <b>${emp.label}</b>　出勤15分切上・退勤15分切捨
+      </div>
+      ${statusHtml}
+      <div class="card" style="margin-bottom:0">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <span style="width:9px;height:9px;border-radius:50%;background:${s?.color||'#888'};flex-shrink:0"></span>
+          <span style="font-size:13px;font-weight:500">${s?.name} — ${u?.name}</span>
+          <span style="font-size:11px;color:var(--tx2);background:var(--bg2);padding:2px 8px;border-radius:10px">${emp.label}</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
+          <div class="stat"><div class="sLbl">所定時間</div><div class="sVal">${fWork(st.sotei)}</div></div>
+          <div class="stat"><div class="sLbl">総実働時間</div><div class="sVal">${fWork(st.totalWork)}</div><div class="sSub">${st.workDays}日出勤</div></div>
+          ${emp.shortage&&st.sh>0
+            ?`<div class="stat" style="background:#FEF9E6"><div class="sLbl" style="color:var(--txW)">不足時間</div><div class="sVal" style="color:var(--txW)">${fWork(st.sh)}</div></div>`
+            :`<div class="stat"><div class="sLbl">時間外</div><div class="sVal" style="${st.ot>0?'color:var(--txD)':''}">${fWork(st.ot)}</div></div>`}
+          <div class="stat"><div class="sLbl">深夜(22-5時)</div><div class="sVal" style="${st.totalMn>0?'color:#533AB7':''}">${fMin(st.totalMn)}</div></div>
+          <div class="stat"><div class="sLbl">夜勤回数</div><div class="sVal" style="${st.nightDays>0?'color:#533AB7':''}">${st.nightDays}回</div></div>
+          <div class="stat"><div class="sLbl">遅刻回数</div><div class="sVal" style="${st.late>0?'color:var(--txW)':''}">${st.late}回</div></div>
+        </div>
+        <div style="display:flex;align-items:flex-end;gap:2px;height:60px;margin:6px 0 4px">${bars}</div>
+      </div>
+    </div>`;
   document.getElementById('repContent').innerHTML=`
-    <div class="notice nInfo" style="font-size:12px;margin-bottom:10px">
-      【変形労働時間制】${y}年${mo}月　所定: <b>${fWork(st.sotei)}</b>　職種: <b>${emp.label}</b>　出勤15分切上・退勤15分切捨
-    </div>
-    ${statusHtml}
-    <div class="card">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-        <span style="width:9px;height:9px;border-radius:50%;background:${s?.color||'#888'};flex-shrink:0"></span>
-        <span style="font-size:13px;font-weight:500">${s?.name} — ${u?.name}</span>
-        <span style="font-size:11px;color:var(--tx2);background:var(--bg2);padding:2px 8px;border-radius:10px">${emp.label}</span>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px">
-        <div class="stat"><div class="sLbl">所定時間</div><div class="sVal">${fWork(st.sotei)}</div></div>
-        <div class="stat"><div class="sLbl">総実働時間</div><div class="sVal">${fWork(st.totalWork)}</div><div class="sSub">${st.workDays}日出勤</div></div>
-        ${emp.shortage&&st.sh>0
-          ?`<div class="stat" style="background:#FEF9E6"><div class="sLbl" style="color:var(--txW)">不足時間</div><div class="sVal" style="color:var(--txW)">${fWork(st.sh)}</div></div>`
-          :`<div class="stat"><div class="sLbl">時間外</div><div class="sVal" style="${st.ot>0?'color:var(--txD)':''}">${fWork(st.ot)}</div></div>`}
-        <div class="stat"><div class="sLbl">深夜(22-5時)</div><div class="sVal" style="${st.totalMn>0?'color:#533AB7':''}">${fMin(st.totalMn)}</div></div>
-        <div class="stat"><div class="sLbl">夜勤回数</div><div class="sVal" style="${st.nightDays>0?'color:#533AB7':''}">${st.nightDays}回</div></div>
-        <div class="stat"><div class="sLbl">遅刻回数</div><div class="sVal" style="${st.late>0?'color:var(--txW)':''}">${st.late}回</div></div>
-      </div>
-      <div style="display:flex;align-items:flex-end;gap:2px;height:60px;margin:6px 0 4px">${bars}</div>
-    </div>
-    <div class="card" style="padding:0;overflow:hidden;overflow-x:auto">
+    <div class="card" style="padding:0;overflow:hidden;overflow-x:auto;margin-top:10px">
       <table class="tbl"><thead><tr><th>日付</th><th>出勤</th><th>退勤</th><th>休憩</th><th>実働</th><th>深夜</th></tr></thead>
         <tbody>${tRows||'<tr><td colspan="6" style="text-align:center;color:var(--tx2);padding:16px">記録なし</td></tr>'}</tbody>
       </table>
@@ -1597,9 +1604,9 @@ function renderCompany(){
         <td>${st.nightDays>0?st.nightDays+'回':'—'}</td>
         <td style="${st.late>0?'color:var(--txW)':''}">${st.late>0?st.late+'回':'—'}</td></tr>`;
     }).join('');
-  document.getElementById('coContent').innerHTML=`
+  document.getElementById('coFixed').innerHTML=`
     <div class="notice nInfo" style="font-size:12px;margin-bottom:10px">【変形労働時間制】${y}年${mo}月　所定（1人）: <b>${fWork(sotei)}</b></div>
-    <div class="card">
+    <div class="card" style="margin-bottom:0">
       <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:0">
         <div class="stat"><div class="sLbl">総職員数</div><div class="sVal">${users.length}名</div></div>
         <div class="stat"><div class="sLbl">延出勤日</div><div class="sVal">${tDays}日</div></div>
@@ -1607,8 +1614,9 @@ function renderCompany(){
         <div class="stat"><div class="sLbl">総時間外</div><div class="sVal" style="${tOT>0?'color:var(--txD)':''}">${fWork(tOT)}</div></div>
         <div class="stat"><div class="sLbl">総深夜</div><div class="sVal" style="${tMn>0?'color:#533AB7':''}">${fMin(tMn)}</div></div>
       </div>
-    </div>
-    <div class="card">
+    </div>`;
+  document.getElementById('coContent').innerHTML=`
+    <div class="card" style="margin-top:10px">
       <div style="font-size:13px;font-weight:500;margin-bottom:10px">事業所別</div>
       <table class="tbl"><thead><tr><th>事業所</th><th>人数</th><th>出勤日</th><th>実働</th><th>時間外</th><th>深夜</th><th>夜勤</th></tr></thead>
         <tbody>${sRows}</tbody></table>
