@@ -110,7 +110,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
 
 <!-- メイン画面 -->
 <div id="pgMain" style="display:none">
-  <div style="position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:0.5px solid var(--bd2);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
+  <div style="position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:0.5px solid var(--bd2);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;box-shadow:0 1px 4px rgba(0,0,0,0.06);will-change:transform;transform:translateZ(0)">
     <div style="font-size:15px;font-weight:500;color:var(--tx);display:flex;align-items:center;gap:8px">
       <i class="ti ti-clock"></i>タイムカード
       <span style="font-size:10px;color:var(--tx3);font-weight:400" id="verNav"></span>
@@ -122,7 +122,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
       <button class="btn" style="padding:5px 10px;font-size:12px" onclick="doLogout()"><i class="ti ti-logout"></i> ログアウト</button>
     </div>
   </div>
-  <div id="tabBar" style="position:sticky;top:53px;z-index:99;padding:6px 20px 0;background:var(--bg);border-bottom:0.5px solid var(--bd2);overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 1px 4px rgba(0,0,0,0.04)">
+  <div id="tabBar" style="position:sticky;top:53px;z-index:99;padding:6px 20px 0;background:var(--bg);border-bottom:0.5px solid var(--bd2);overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 1px 4px rgba(0,0,0,0.04);will-change:transform;transform:translateZ(0)">
     <div class="tab-bar" style="display:inline-flex;white-space:nowrap">
       <button class="tab on" onclick="showTab('punch')"><i class="ti ti-fingerprint"></i> 打刻</button>
       <button class="tab" onclick="showTab('history')"><i class="ti ti-calendar"></i> 履歴</button>
@@ -170,7 +170,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
 
     <!-- 履歴 -->
     <div id="tHistory" style="display:none">
-      <div style="position:sticky;top:101px;z-index:98;background:var(--bg3);padding-top:8px;padding-bottom:8px">
+      <div style="position:sticky;top:101px;z-index:98;background:var(--bg3);padding-top:8px;padding-bottom:8px;will-change:transform;transform:translateZ(0);backface-visibility:hidden">
         <div class="row" style="margin-bottom:10px;flex-wrap:wrap;gap:6px">
           <div style="font-size:13px;font-weight:500">勤務履歴</div>
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
@@ -192,7 +192,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
 
     <!-- 集計 -->
     <div id="tReport" style="display:none">
-      <div style="position:sticky;top:101px;z-index:98;background:var(--bg3)">
+      <div style="position:sticky;top:101px;z-index:98;background:var(--bg3);will-change:transform;transform:translateZ(0);backface-visibility:hidden">
         <div class="row" style="margin-bottom:10px;flex-wrap:wrap;gap:6px;padding-top:2px">
           <div style="font-size:13px;font-weight:500">月次集計</div>
           <div style="display:flex;gap:6px;align-items:center">
@@ -208,7 +208,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
 
     <!-- 状況 -->
     <div id="tRealtime" style="display:none">
-      <div style="position:sticky;top:101px;z-index:98;background:var(--bg3);padding-top:8px;padding-bottom:8px">
+      <div style="position:sticky;top:101px;z-index:98;background:var(--bg3);padding-top:8px;padding-bottom:8px;will-change:transform;transform:translateZ(0);backface-visibility:hidden">
         <div class="row">
           <div style="font-size:13px;font-weight:500"><i class="ti ti-radio"></i> リアルタイム打刻状況</div>
           <div style="display:flex;gap:6px;align-items:center">
@@ -222,7 +222,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
 
     <!-- 全社 -->
     <div id="tCompany" style="display:none">
-      <div style="position:sticky;top:101px;z-index:98;background:var(--bg3)">
+      <div style="position:sticky;top:101px;z-index:98;background:var(--bg3);will-change:transform;transform:translateZ(0);backface-visibility:hidden">
         <div class="row" style="padding-top:2px">
           <div style="font-size:13px;font-weight:500"><i class="ti ti-building"></i> 全社集計</div>
           <div style="display:flex;gap:6px;align-items:center">
@@ -237,7 +237,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
 
     <!-- 勤務表 -->
     <div id="tMatrix" style="display:none">
-      <div style="position:sticky;top:101px;z-index:98;background:var(--bg3);padding-top:8px;padding-bottom:8px">
+      <div style="position:sticky;top:101px;z-index:98;background:var(--bg3);padding-top:8px;padding-bottom:8px;will-change:transform;transform:translateZ(0);backface-visibility:hidden">
         <div class="row" style="margin-bottom:10px;flex-wrap:wrap;gap:6px">
           <div style="font-size:13px;font-weight:500"><i class="ti ti-table"></i> 勤務表</div>
           <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
@@ -555,6 +555,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
  * v2.0.5 - #appのoverflow-x設定を削除しsticky固定を有効化
  * v2.0.6 - 集計・全社タブの固定範囲を拡張、上部チラつき修正
  * v2.0.7 - 負のmarginを削除しチラつきをさらに改善
+ * v2.0.8 - GPUレイヤー強制でスクロール時のチラつきを抑制
  * =============================================
  */
 const GAS = 'https://script.google.com/macros/s/AKfycbzxE6QiIfDym8yNojfkr619dCIsM2IAG8R7vj4i-BOZ_NucEDtjqijRrFK4xE-5a3-V/exec';
@@ -577,7 +578,7 @@ let editReasons = ['打刻忘れ', '打刻ミス', '記録訂正', 'その他'];
 // マイナー: 機能追加
 // パッチ  : バグ修正・細かい調整
 // =============================================
-const VERSION = '2.0.7';
+const VERSION = '2.0.8';
 const DOW = ['日','月','火','水','木','金','土'];
 
 // 打刻漏れ判定（出勤あり・退勤なし）
