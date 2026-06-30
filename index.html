@@ -78,7 +78,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
 </style>
 </head>
 <body>
-<div id="app" style="max-width:100vw;overflow-x:hidden">
+<div id="app" style="max-width:100vw">
 
 <!-- 同期バー -->
 <div class="sync" id="syncBar"><span class="spinner" style="width:14px;height:14px;border-width:2px"></span><span id="syncMsg">保存中...</span></div>
@@ -550,6 +550,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
  * v2.0.2 - ナビバー・タブバーをスクロール時も固定表示
  * v2.0.3 - 各タブのツールバー部分も固定表示に対応
  * v2.0.4 - api関数に詳細ログを追加（デバッグ用）
+ * v2.0.5 - #appのoverflow-x設定を削除しsticky固定を有効化
  * =============================================
  */
 const GAS = 'https://script.google.com/macros/s/AKfycbzxE6QiIfDym8yNojfkr619dCIsM2IAG8R7vj4i-BOZ_NucEDtjqijRrFK4xE-5a3-V/exec';
@@ -572,7 +573,7 @@ let editReasons = ['打刻忘れ', '打刻ミス', '記録訂正', 'その他'];
 // マイナー: 機能追加
 // パッチ  : バグ修正・細かい調整
 // =============================================
-const VERSION = '2.0.4';
+const VERSION = '2.0.5';
 const DOW = ['日','月','火','水','木','金','土'];
 
 // 打刻漏れ判定（出勤あり・退勤なし）
