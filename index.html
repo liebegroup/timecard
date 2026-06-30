@@ -122,8 +122,8 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
       <button class="btn" style="padding:5px 10px;font-size:12px" onclick="doLogout()"><i class="ti ti-logout"></i> ログアウト</button>
     </div>
   </div>
-  <div style="padding:6px 20px 0;background:var(--bg);border-bottom:0.5px solid var(--bd2)">
-    <div class="tab-bar" style="display:inline-flex">
+  <div id="tabBar" style="position:sticky;top:53px;z-index:99;padding:6px 20px 0;background:var(--bg);border-bottom:0.5px solid var(--bd2);overflow-x:auto;-webkit-overflow-scrolling:touch;box-shadow:0 1px 4px rgba(0,0,0,0.04)">
+    <div class="tab-bar" style="display:inline-flex;white-space:nowrap">
       <button class="tab on" onclick="showTab('punch')"><i class="ti ti-fingerprint"></i> 打刻</button>
       <button class="tab" onclick="showTab('history')"><i class="ti ti-calendar"></i> 履歴</button>
       <button class="tab" onclick="showTab('report')"><i class="ti ti-chart-bar"></i> 集計</button>
@@ -170,16 +170,18 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
 
     <!-- 履歴 -->
     <div id="tHistory" style="display:none">
-      <div class="row" style="margin-bottom:10px;flex-wrap:wrap;gap:6px">
-        <div style="font-size:13px;font-weight:500">勤務履歴</div>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-          <input type="month" id="histM" class="ifield" style="width:auto;padding:5px 9px" onchange="loadAndRender('history')">
-          <button class="btn" style="font-size:11px;padding:4px 10px" onclick="loadAndRender('history',true)"><i class="ti ti-refresh"></i></button>
-          <button class="btn btn-p" onclick="openEditNew()"><i class="ti ti-plus"></i> 新規追加</button>
+      <div style="position:sticky;top:101px;z-index:98;background:var(--bg3);padding-top:2px;padding-bottom:8px;margin:-2px -2px 0">
+        <div class="row" style="margin-bottom:10px;flex-wrap:wrap;gap:6px">
+          <div style="font-size:13px;font-weight:500">勤務履歴</div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <input type="month" id="histM" class="ifield" style="width:auto;padding:5px 9px" onchange="loadAndRender('history')">
+            <button class="btn" style="font-size:11px;padding:4px 10px" onclick="loadAndRender('history',true)"><i class="ti ti-refresh"></i></button>
+            <button class="btn btn-p" onclick="openEditNew()"><i class="ti ti-plus"></i> 新規追加</button>
+          </div>
         </div>
+        <div class="notice nInfo" style="font-size:12px;margin-bottom:8px"><i class="ti ti-info-circle"></i> 行をタップして修正</div>
+        <div id="histFilters" style="display:flex;gap:6px;flex-wrap:wrap"></div>
       </div>
-      <div class="notice nInfo" style="font-size:12px"><i class="ti ti-info-circle"></i> 行をタップして修正</div>
-      <div id="histFilters" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
       <div class="card" style="padding:0;overflow:hidden;overflow-x:auto">
         <table class="tbl">
           <thead><tr><th>日付</th><th>勤務地</th><th>出勤</th><th>退勤</th><th>休憩</th><th>実働</th><th>深夜</th><th>修正</th></tr></thead>
@@ -190,24 +192,28 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
 
     <!-- 集計 -->
     <div id="tReport" style="display:none">
-      <div class="row" style="margin-bottom:10px;flex-wrap:wrap;gap:6px">
-        <div style="font-size:13px;font-weight:500">月次集計</div>
-        <div style="display:flex;gap:6px;align-items:center">
-          <input type="month" id="repM" class="ifield" style="width:auto;padding:5px 9px" onchange="loadAndRender('report')">
-          <button class="btn" style="font-size:11px;padding:4px 10px" onclick="loadAndRender('report',true)"><i class="ti ti-refresh"></i></button>
+      <div style="position:sticky;top:101px;z-index:98;background:var(--bg3);padding-top:2px;padding-bottom:8px;margin:-2px -2px 0">
+        <div class="row" style="margin-bottom:10px;flex-wrap:wrap;gap:6px">
+          <div style="font-size:13px;font-weight:500">月次集計</div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input type="month" id="repM" class="ifield" style="width:auto;padding:5px 9px" onchange="loadAndRender('report')">
+            <button class="btn" style="font-size:11px;padding:4px 10px" onclick="loadAndRender('report',true)"><i class="ti ti-refresh"></i></button>
+          </div>
         </div>
+        <div id="repFilters" style="display:flex;gap:6px;flex-wrap:wrap"></div>
       </div>
-      <div id="repFilters" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
       <div id="repContent"></div>
     </div>
 
     <!-- 状況 -->
     <div id="tRealtime" style="display:none">
-      <div class="row" style="margin-bottom:12px">
-        <div style="font-size:13px;font-weight:500"><i class="ti ti-radio"></i> リアルタイム打刻状況</div>
-        <div style="display:flex;gap:6px;align-items:center">
-          <span id="rtClock" style="font-size:12px;color:var(--tx2)"></span>
-          <button class="btn" style="font-size:11px;padding:4px 10px" onclick="loadAndRender('realtime',true)"><i class="ti ti-refresh"></i> 更新</button>
+      <div style="position:sticky;top:101px;z-index:98;background:var(--bg3);padding-top:2px;padding-bottom:8px;margin:-2px -2px 0">
+        <div class="row">
+          <div style="font-size:13px;font-weight:500"><i class="ti ti-radio"></i> リアルタイム打刻状況</div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <span id="rtClock" style="font-size:12px;color:var(--tx2)"></span>
+            <button class="btn" style="font-size:11px;padding:4px 10px" onclick="loadAndRender('realtime',true)"><i class="ti ti-refresh"></i> 更新</button>
+          </div>
         </div>
       </div>
       <div id="rtContent"></div>
@@ -215,11 +221,13 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
 
     <!-- 全社 -->
     <div id="tCompany" style="display:none">
-      <div class="row" style="margin-bottom:10px;flex-wrap:wrap;gap:6px">
-        <div style="font-size:13px;font-weight:500"><i class="ti ti-building"></i> 全社集計</div>
-        <div style="display:flex;gap:6px;align-items:center">
-          <input type="month" id="coM" class="ifield" style="width:auto;padding:5px 9px" onchange="loadAndRender('company')">
-          <button class="btn" style="font-size:11px;padding:4px 10px" onclick="loadAndRender('company',true)"><i class="ti ti-refresh"></i></button>
+      <div style="position:sticky;top:101px;z-index:98;background:var(--bg3);padding-top:2px;padding-bottom:8px;margin:-2px -2px 0">
+        <div class="row">
+          <div style="font-size:13px;font-weight:500"><i class="ti ti-building"></i> 全社集計</div>
+          <div style="display:flex;gap:6px;align-items:center">
+            <input type="month" id="coM" class="ifield" style="width:auto;padding:5px 9px" onchange="loadAndRender('company')">
+            <button class="btn" style="font-size:11px;padding:4px 10px" onclick="loadAndRender('company',true)"><i class="ti ti-refresh"></i></button>
+          </div>
         </div>
       </div>
       <div id="coContent"></div>
@@ -227,19 +235,21 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
 
     <!-- 勤務表 -->
     <div id="tMatrix" style="display:none">
-      <div class="row" style="margin-bottom:10px;flex-wrap:wrap;gap:6px">
-        <div style="font-size:13px;font-weight:500"><i class="ti ti-table"></i> 勤務表</div>
-        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-          <input type="month" id="mxM" class="ifield" style="width:auto;padding:5px 9px" onchange="renderMatrix()">
-          <select id="mxSite" class="ifield" style="width:auto;padding:5px 9px;cursor:pointer" onchange="renderMatrix()"></select>
-          <button class="btn" style="font-size:11px;padding:4px 10px" onclick="loadAndRender('matrix',true)"><i class="ti ti-refresh"></i></button>
-          <button class="btn" style="font-size:11px;padding:4px 10px" onclick="exportMatrixCsv()"><i class="ti ti-download"></i> CSV</button>
+      <div style="position:sticky;top:101px;z-index:98;background:var(--bg3);padding-top:2px;padding-bottom:8px;margin:-2px -2px 0">
+        <div class="row" style="margin-bottom:10px;flex-wrap:wrap;gap:6px">
+          <div style="font-size:13px;font-weight:500"><i class="ti ti-table"></i> 勤務表</div>
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+            <input type="month" id="mxM" class="ifield" style="width:auto;padding:5px 9px" onchange="renderMatrix()">
+            <select id="mxSite" class="ifield" style="width:auto;padding:5px 9px;cursor:pointer" onchange="renderMatrix()"></select>
+            <button class="btn" style="font-size:11px;padding:4px 10px" onclick="loadAndRender('matrix',true)"><i class="ti ti-refresh"></i></button>
+            <button class="btn" style="font-size:11px;padding:4px 10px" onclick="exportMatrixCsv()"><i class="ti ti-download"></i> CSV</button>
+          </div>
         </div>
-      </div>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px;font-size:11px;color:var(--tx2)">
-        <span><span style="display:inline-block;width:12px;height:12px;background:#E6F1FB;border:0.5px solid #185FA5;border-radius:2px;vertical-align:middle;margin-right:3px"></span>日勤</span>
-        <span><span style="display:inline-block;width:12px;height:12px;background:#EEEDFE;border:0.5px solid #533AB7;border-radius:2px;vertical-align:middle;margin-right:3px"></span>夜勤</span>
-        <span>数字は実働時間(h)</span>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--tx2)">
+          <span><span style="display:inline-block;width:12px;height:12px;background:#E6F1FB;border:0.5px solid #185FA5;border-radius:2px;vertical-align:middle;margin-right:3px"></span>日勤</span>
+          <span><span style="display:inline-block;width:12px;height:12px;background:#EEEDFE;border:0.5px solid #533AB7;border-radius:2px;vertical-align:middle;margin-right:3px"></span>夜勤</span>
+          <span>数字は実働時間(h)</span>
+        </div>
       </div>
       <div id="mxContent"></div>
     </div>
@@ -538,6 +548,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
  * v2.0.0 - 勤務地マスタ(worksites)対応
  * v2.0.1 - GAS URL更新(v19)
  * v2.0.2 - ナビバー・タブバーをスクロール時も固定表示
+ * v2.0.3 - 各タブのツールバー部分も固定表示に対応
  * =============================================
  */
 const GAS = 'https://script.google.com/macros/s/AKfycbzxE6QiIfDym8yNojfkr619dCIsM2IAG8R7vj4i-BOZ_NucEDtjqijRrFK4xE-5a3-V/exec';
@@ -560,7 +571,7 @@ let editReasons = ['打刻忘れ', '打刻ミス', '記録訂正', 'その他'];
 // マイナー: 機能追加
 // パッチ  : バグ修正・細かい調整
 // =============================================
-const VERSION = '2.0.2';
+const VERSION = '2.0.3';
 const DOW = ['日','月','火','水','木','金','土'];
 
 // 打刻漏れ判定（出勤あり・退勤なし）
