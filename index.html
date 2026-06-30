@@ -110,7 +110,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
 
 <!-- メイン画面 -->
 <div id="pgMain" style="display:none">
-  <div style="background:var(--bg);border-bottom:0.5px solid var(--bd2);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+  <div style="position:sticky;top:0;z-index:100;background:var(--bg);border-bottom:0.5px solid var(--bd2);padding:10px 20px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;box-shadow:0 1px 4px rgba(0,0,0,0.06)">
     <div style="font-size:15px;font-weight:500;color:var(--tx);display:flex;align-items:center;gap:8px">
       <i class="ti ti-clock"></i>タイムカード
       <span style="font-size:10px;color:var(--tx3);font-weight:400" id="verNav"></span>
@@ -133,7 +133,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
       <button class="tab" id="tabAd" style="display:none" onclick="showTab('admin')"><i class="ti ti-settings"></i> 管理</button>
     </div>
   </div>
-  <div style="padding:16px 20px">
+  <div style="padding:16px 20px;min-height:calc(100vh - 110px)">
 
     <!-- 打刻 -->
     <div id="tPunch">
@@ -537,6 +537,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
  * v1.9.8 - 修正理由プルダウン初期化を_openEditに追加
  * v2.0.0 - 勤務地マスタ(worksites)対応
  * v2.0.1 - GAS URL更新(v19)
+ * v2.0.2 - ナビバー・タブバーをスクロール時も固定表示
  * =============================================
  */
 const GAS = 'https://script.google.com/macros/s/AKfycbzxE6QiIfDym8yNojfkr619dCIsM2IAG8R7vj4i-BOZ_NucEDtjqijRrFK4xE-5a3-V/exec';
@@ -559,7 +560,7 @@ let editReasons = ['打刻忘れ', '打刻ミス', '記録訂正', 'その他'];
 // マイナー: 機能追加
 // パッチ  : バグ修正・細かい調整
 // =============================================
-const VERSION = '2.0.1';
+const VERSION = '2.0.2';
 const DOW = ['日','月','火','水','木','金','土'];
 
 // 打刻漏れ判定（出勤あり・退勤なし）
