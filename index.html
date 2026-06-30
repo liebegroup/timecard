@@ -590,9 +590,10 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
  * v2.3.0 - 人事異動予約機能を追加（指定日以降ログイン時に自動適用）
  * v2.3.2 - 勤務表・全社集計を打刻時の勤務地(workSiteId)優先の遡及集計に対応
  * v2.3.3 - GAS URL更新(v24) 人事異動予約対応
+ * v2.3.4 - GAS URL更新(v25) invalidateRecordsCache欠落バグ修正
  * =============================================
  */
-const GAS = 'https://script.google.com/macros/s/AKfycbx-DX241tstM2L4saxHW8Xhfk1dGscswM4MaMRfeGaV94WGn-pF3XogcBoGtxlr3qrR/exec';
+const GAS = 'https://script.google.com/macros/s/AKfycbzgOCUgVu7wm8UYsXY3zI6gxen15tLcq_mm7FHoIYqn1xT478mLUpJRW-qxpBdhtXqq/exec';
 
 const EMP = {
   seishain:   {label:'正社員',         h:8, shortage:true},
@@ -612,7 +613,7 @@ let editReasons = ['打刻忘れ', '打刻ミス', '記録訂正', 'その他'];
 // マイナー: 機能追加
 // パッチ  : バグ修正・細かい調整
 // =============================================
-const VERSION = '2.3.3';
+const VERSION = '2.3.4';
 const DOW = ['日','月','火','水','木','金','土'];
 
 // 打刻漏れ判定（出勤あり・退勤なし）
