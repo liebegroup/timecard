@@ -592,6 +592,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
  * v2.3.3 - GAS URL更新(v24) 人事異動予約対応
  * v2.3.4 - GAS URL更新(v25) invalidateRecordsCache欠落バグ修正
  * v2.3.5 - GAS URL更新(v26) inTs/outTs日時文字列保存対応
+ * v2.3.6 - タイムアウト時のエラーメッセージを改善（実際は保存成功している場合への配慮）
  * =============================================
  */
 const GAS = 'https://script.google.com/macros/s/AKfycbxQUH9smj6YwtAIxr690fCVWXEClEh1Y6QvHzpONJDYpNrQeFujC8xJdCOrGQwjvzfI/exec';
@@ -614,7 +615,7 @@ let editReasons = ['打刻忘れ', '打刻ミス', '記録訂正', 'その他'];
 // マイナー: 機能追加
 // パッチ  : バグ修正・細かい調整
 // =============================================
-const VERSION = '2.3.5';
+const VERSION = '2.3.6';
 const DOW = ['日','月','火','水','木','金','土'];
 
 // 打刻漏れ判定（出勤あり・退勤なし）
@@ -849,7 +850,11 @@ function jsonp(params){
 }
 
 function showSync(msg){ const b=document.getElementById('syncBar');document.getElementById('syncMsg').textContent=msg;b.style.display='flex'; }
-function hideSync(){ setTimeout(()=>document.getElementById('syncBar').style.display='none',1500); }
+function hideSync(){
+  let msg=document.getElementById('syncMsg').textContent;
+  let delay=msg.includes('可能性')?4000:1500; // エラー系メッセージは長めに表示
+  setTimeout(()=>document.getElementById('syncBar').style.display='none',delay);
+}
 
 // ============================================================
 // データロード
@@ -932,7 +937,8 @@ async function saveRec(uid,inDate){
     });
     document.getElementById('syncMsg').textContent='保存完了 ✓';
   }catch(e){
-    document.getElementById('syncMsg').textContent='保存失敗';
+    // タイムアウト時もGAS側では保存が完了している場合が多いため、不安にさせない表現にする
+    document.getElementById('syncMsg').textContent='通信に時間がかかっています（保存は完了している可能性があります）';
     console.error(e);
   }
   hideSync();
