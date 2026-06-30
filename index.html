@@ -585,6 +585,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
  * v2.1.9 - スペーサー高さの小数点誤差を切り上げ+1pxで解消
  * v2.2.0 - 勤務表テーブルのborder-collapse起因のsticky隙間を修正
  * v2.2.1 - GAS URL更新(v23) worksites siteId日付変換防止
+ * v2.2.2 - loadMasterにworksites代入処理を復元（バグ修正）
  * =============================================
  */
 const GAS = 'https://script.google.com/macros/s/AKfycby9Anim7S46MIqf9Gov-k9dB-aKB8_p0H7kYhvNcxscfTiTtDRAmnfHVH3RmR7dbZQi/exec';
@@ -607,7 +608,7 @@ let editReasons = ['打刻忘れ', '打刻ミス', '記録訂正', 'その他'];
 // マイナー: 機能追加
 // パッチ  : バグ修正・細かい調整
 // =============================================
-const VERSION = '2.2.1';
+const VERSION = '2.2.2';
 const DOW = ['日','月','火','水','木','金','土'];
 
 // 打刻漏れ判定（出勤あり・退勤なし）
@@ -842,6 +843,7 @@ async function loadMaster(){
   if(sites.length)document.getElementById('nextSiteId')||(window.nextSiteId=Math.max(...sites.map(s=>s.id))+1);
   // 事業所IDは手動入力のため自動採番しない
   window.nextUserId=users.length?Math.max(...users.map(u=>u.id))+1:1;
+  worksites=d.worksites||[];
 }
 
 async function loadMonth(ym, force=false){
