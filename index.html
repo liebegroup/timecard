@@ -49,7 +49,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
 .dIn{background:#639922}.dBrk{background:#BA7517}.dOff{background:#888780}.dNight{background:#533AB7}
 .tbl{width:100%;border-collapse:collapse;font-size:12px}
 .tbl th{text-align:left;padding:7px 8px;color:var(--tx2);font-weight:500;border-bottom:0.5px solid var(--bd2);white-space:nowrap}
-.tbl-sticky-head thead{position:sticky;top:0;background:var(--bg);z-index:5;box-shadow:0 1px 0 var(--bd2)}
+.tbl-sticky-head thead{position:sticky;top:-1px;background:var(--bg);z-index:5;box-shadow:0 1px 0 var(--bd2)}
 .tbl td{padding:7px 8px;border-bottom:0.5px solid var(--bd2);color:var(--tx);white-space:nowrap;vertical-align:middle}
 .tbl tr:last-child td{border-bottom:none}
 .tbl tr:hover td{background:var(--bg2)}
@@ -63,9 +63,9 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
 .site-card{background:var(--bg);border:0.5px solid var(--bd2);border-radius:var(--R);padding:14px 16px;margin-bottom:10px}
 /* マトリクス */
 .mx-wrap{overflow:auto;max-height:400px;border-radius:var(--R);border:0.5px solid var(--bd2);background:var(--bg)}
-.mx{border-collapse:collapse;font-size:11px;min-width:max-content}
-.mx th{position:sticky;top:0;background:var(--bg2);z-index:6;padding:0;border:0.5px solid var(--bd2);box-shadow:0 1px 0 var(--bd2)}
-.mx td{border:0.5px solid var(--bd2);padding:0;text-align:center;min-width:34px;height:28px}
+.mx{border-collapse:separate;border-spacing:0;font-size:11px;min-width:max-content}
+.mx th{position:sticky;top:-1px;background:var(--bg2);z-index:6;padding:0;border-bottom:0.5px solid var(--bd2);border-right:0.5px solid var(--bd2)}
+.mx td{border-bottom:0.5px solid var(--bd2);border-right:0.5px solid var(--bd2);padding:0;text-align:center;min-width:34px;height:28px}
 .mx .cName{position:sticky;left:0;z-index:7;background:var(--bg2)!important;min-width:90px;text-align:left!important;padding:5px 8px!important;font-weight:500}
 .mx .corner{position:sticky;left:0;top:0;z-index:11;background:var(--bg2)!important}
 .mc{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:10px;font-weight:500}
@@ -583,6 +583,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
  * v2.1.7 - 管理タブの事業所ジャンプを固定化、scrollToSiteのオフセット修正、勤務表背景色明示
  * v2.1.8 - 履歴/集計の職員選択をプルダウンに再修正、固定ヘッダー間の隙間を解消
  * v2.1.9 - スペーサー高さの小数点誤差を切り上げ+1pxで解消
+ * v2.2.0 - 勤務表テーブルのborder-collapse起因のsticky隙間を修正
  * =============================================
  */
 const GAS = 'https://script.google.com/macros/s/AKfycbxpL1-PjbPdexmdl6j1cLSycGX3ukSC7MRUL4msjj1U-zc8kHUTw8Kj9LjH0YkDRLOT/exec';
@@ -605,7 +606,7 @@ let editReasons = ['打刻忘れ', '打刻ミス', '記録訂正', 'その他'];
 // マイナー: 機能追加
 // パッチ  : バグ修正・細かい調整
 // =============================================
-const VERSION = '2.1.9';
+const VERSION = '2.2.0';
 const DOW = ['日','月','火','水','木','金','土'];
 
 // 打刻漏れ判定（出勤あり・退勤なし）
