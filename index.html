@@ -582,6 +582,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
  * v2.1.6 - 履歴・勤務表のスペーサー高さ動的調整を追加（ヘッダー隠れ問題を修正）
  * v2.1.7 - 管理タブの事業所ジャンプを固定化、scrollToSiteのオフセット修正、勤務表背景色明示
  * v2.1.8 - 履歴/集計の職員選択をプルダウンに再修正、固定ヘッダー間の隙間を解消
+ * v2.1.9 - スペーサー高さの小数点誤差を切り上げ+1pxで解消
  * =============================================
  */
 const GAS = 'https://script.google.com/macros/s/AKfycbxpL1-PjbPdexmdl6j1cLSycGX3ukSC7MRUL4msjj1U-zc8kHUTw8Kj9LjH0YkDRLOT/exec';
@@ -604,7 +605,7 @@ let editReasons = ['打刻忘れ', '打刻ミス', '記録訂正', 'その他'];
 // マイナー: 機能追加
 // パッチ  : バグ修正・細かい調整
 // =============================================
-const VERSION = '2.1.8';
+const VERSION = '2.1.9';
 const DOW = ['日','月','火','水','木','金','土'];
 
 // 打刻漏れ判定（出勤あり・退勤なし）
@@ -1089,7 +1090,9 @@ function adjustSpacerHeight(toolbarId, spacerId){
     let toolbar=document.getElementById(toolbarId);
     let spacer=document.getElementById(spacerId);
     if(toolbar&&spacer){
-      spacer.style.height=toolbar.offsetHeight+'px';
+      // 小数点誤差対策: +1px余分に確保して隙間を確実に防ぐ
+      let h=Math.ceil(toolbar.getBoundingClientRect().height)+1;
+      spacer.style.height=h+'px';
     }
   });
 }
