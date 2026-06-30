@@ -193,7 +193,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
 
     <!-- 集計 -->
     <div id="tReport" style="display:none">
-      <div id="repToolbar" style="position:fixed;top:101px;left:0;right:0;z-index:98;background:var(--bg3);padding:8px 20px;box-shadow:0 1px 4px rgba(0,0,0,0.04)">
+      <div id="repToolbar" style="position:fixed;top:101px;left:0;right:0;z-index:98;background:var(--bg3);padding:8px 20px 0;box-shadow:0 1px 4px rgba(0,0,0,0.04)">
         <div class="row" style="margin-bottom:10px;flex-wrap:wrap;gap:6px">
           <div style="font-size:13px;font-weight:500">月次集計</div>
           <div style="display:flex;gap:6px;align-items:center">
@@ -201,10 +201,10 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
             <button class="btn" style="font-size:11px;padding:4px 10px" onclick="loadAndRender('report',true)"><i class="ti ti-refresh"></i></button>
           </div>
         </div>
-        <div id="repFilters" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+        <div id="repFilters" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
+        <div id="repFixed" style="padding-bottom:8px"></div>
       </div>
       <div id="repSpacer" style="height:60px"></div>
-      <div id="repFixed" style="padding-bottom:8px"></div>
       <div id="repContent"></div>
     </div>
 
@@ -225,17 +225,17 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
 
     <!-- 全社 -->
     <div id="tCompany" style="display:none">
-      <div id="coToolbar" style="position:fixed;top:101px;left:0;right:0;z-index:98;background:var(--bg3);padding:8px 20px;box-shadow:0 1px 4px rgba(0,0,0,0.04)">
-        <div class="row">
+      <div id="coToolbar" style="position:fixed;top:101px;left:0;right:0;z-index:98;background:var(--bg3);padding:8px 20px 0;box-shadow:0 1px 4px rgba(0,0,0,0.04)">
+        <div class="row" style="margin-bottom:10px">
           <div style="font-size:13px;font-weight:500"><i class="ti ti-building"></i> 全社集計</div>
           <div style="display:flex;gap:6px;align-items:center">
             <input type="month" id="coM" class="ifield" style="width:auto;padding:5px 9px" onchange="loadAndRender('company')">
             <button class="btn" style="font-size:11px;padding:4px 10px" onclick="loadAndRender('company',true)"><i class="ti ti-refresh"></i></button>
           </div>
         </div>
+        <div id="coFixed" style="padding-bottom:8px"></div>
       </div>
       <div id="coSpacer" style="height:60px"></div>
-      <div id="coFixed" style="padding-bottom:8px"></div>
       <div id="coContent"></div>
     </div>
 
@@ -563,6 +563,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
  * v2.0.8 - GPUレイヤー強制でスクロール時のチラつきを抑制
  * v2.0.9 - 固定ブロックの最小高さを設定しレイアウトずれを防止
  * v2.1.0 - sticky→fixedに変更しスクロール時のズレを完全解消
+ * v2.1.1 - 集計・全社タブの固定範囲をグラフ/サマリーまで拡張、動的スペーサー調整
  * =============================================
  */
 const GAS = 'https://script.google.com/macros/s/AKfycbzxE6QiIfDym8yNojfkr619dCIsM2IAG8R7vj4i-BOZ_NucEDtjqijRrFK4xE-5a3-V/exec';
@@ -585,7 +586,7 @@ let editReasons = ['打刻忘れ', '打刻ミス', '記録訂正', 'その他'];
 // マイナー: 機能追加
 // パッチ  : バグ修正・細かい調整
 // =============================================
-const VERSION = '2.1.0';
+const VERSION = '2.1.1';
 const DOW = ['日','月','火','水','木','金','土'];
 
 // 打刻漏れ判定（出勤あり・退勤なし）
@@ -1025,6 +1026,17 @@ function showTab(name){
   else if(name==='admin'){renderAdmin();}
 }
 
+// 固定ヘッダーの実際の高さに合わせてスペーサーの高さを調整
+function adjustSpacerHeight(toolbarId, spacerId){
+  requestAnimationFrame(()=>{
+    let toolbar=document.getElementById(toolbarId);
+    let spacer=document.getElementById(spacerId);
+    if(toolbar&&spacer){
+      spacer.style.height=toolbar.offsetHeight+'px';
+    }
+  });
+}
+
 // タブ別ロード＋描画
 async function loadAndRender(name,force=false){
   let ym;
@@ -1421,6 +1433,7 @@ function renderReport(){
         <tbody>${tRows||'<tr><td colspan="6" style="text-align:center;color:var(--tx2);padding:16px">記録なし</td></tr>'}</tbody>
       </table>
     </div>`;
+  adjustSpacerHeight('repToolbar','repSpacer');
 }
 
 // ============================================================
@@ -1636,6 +1649,7 @@ function renderCompany(){
         <tbody>${uRows}</tbody></table>
       </div>
     </div>`;
+  adjustSpacerHeight('coToolbar','coSpacer');
 }
 
 // ============================================================
