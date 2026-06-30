@@ -535,9 +535,11 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
  * v1.9.6 - 事業所カラーピッカー追加
  * v1.9.7 - 修正モーダル閉じ時に選択状態をリセット
  * v1.9.8 - 修正理由プルダウン初期化を_openEditに追加
+ * v2.0.0 - 勤務地マスタ(worksites)対応
+ * v2.0.1 - GAS URL更新(v19)
  * =============================================
  */
-const GAS = 'https://script.google.com/macros/s/AKfycbxA9IGdSc7apz4X2fahan4X3thOe2DZIlzR-JqoFPscfufvaMOyJcfwBAFX1qVsgB8K/exec';
+const GAS = 'https://script.google.com/macros/s/AKfycbzxE6QiIfDym8yNojfkr619dCIsM2IAG8R7vj4i-BOZ_NucEDtjqijRrFK4xE-5a3-V/exec';
 
 const EMP = {
   seishain:   {label:'正社員',         h:8, shortage:true},
@@ -557,7 +559,7 @@ let editReasons = ['打刻忘れ', '打刻ミス', '記録訂正', 'その他'];
 // マイナー: 機能追加
 // パッチ  : バグ修正・細かい調整
 // =============================================
-const VERSION = '1.9.8';
+const VERSION = '2.0.1';
 const DOW = ['日','月','火','水','木','金','土'];
 
 // 打刻漏れ判定（出勤あり・退勤なし）
@@ -581,12 +583,36 @@ function validSiteId(s){
   // 00-00-000 形式チェック
   return /^\d{2}-\d{2}-\d{3}$/.test(String(s));
 }
+function validWorksiteId(s){
+  // 00-00-000-00 形式チェック
+  return /^\d{2}-\d{2}-\d{3}-\d{2}$/.test(String(s));
+}
+function fmtWorksiteIdInput(el){
+  let v=el.value.replace(/[^0-9]/g,'');
+  if(v.length>2)  v=v.slice(0,2)+'-'+v.slice(2);
+  if(v.length>5)  v=v.slice(0,5)+'-'+v.slice(5);
+  if(v.length>9)  v=v.slice(0,9)+'-'+v.slice(9);
+  if(v.length>12) v=v.slice(0,12);
+  el.value=v;
+}
+// 勤務地の親事業所を取得
+function siteOfWorksite(wsId){
+  let ws=worksites.find(w=>String(w.id)===String(wsId));
+  if(!ws)return null;
+  return sites.find(s=>String(s.id)===String(ws.siteId));
+}
+// 勤務地名を取得（事業所名 > 勤務地名）
+function worksiteName(wsId){
+  let ws=worksites.find(w=>String(w.id)===String(wsId));
+  if(!ws)return String(wsId);
+  return ws.name;
+}
 function fmtSiteId(s){ return String(s); }
 
 // ============================================================
 // 状態
 // ============================================================
-let sites=[], users=[], records={};
+let sites=[], users=[], records={}, worksites=[];
 let loadedMonths = new Set();
 let cu=null, histUid=null, repUid=null, pwMode=null, pwTargetId=null;
 let rtTimer=null;
@@ -1027,8 +1053,9 @@ function updatePunch(){
   let wsd=document.getElementById('workSiteDisp');
   let wsn=document.getElementById('workSiteName');
   if(r.inTs&&r.workSiteId){
-    let ws=sites.find(s=>String(s.id)===String(r.workSiteId));
-    if(ws&&wsd&&wsn){wsd.style.display='flex';wsn.textContent=ws.name;wsn.style.color=ws.color;}
+    let wsObj=worksites.find(w=>String(w.id)===String(r.workSiteId))||sites.find(s=>String(s.id)===String(r.workSiteId));
+    let wsColor=siteOfWorksite(r.workSiteId)?.color||wsObj?.color||'#185FA5';
+    if(wsObj&&wsd&&wsn){wsd.style.display='flex';wsn.textContent=wsObj.name;wsn.style.color=wsColor;}
   }else{if(wsd)wsd.style.display='none';}
 
   let bI=document.getElementById('bIn'),bO=document.getElementById('bOut'),bB=document.getElementById('bBrk'),bR=document.getElementById('bRes');
@@ -1110,11 +1137,31 @@ function doSelectShift(isNight){
 
 function openSiteSel(){
   let list=document.getElementById('siteSelList');
-  list.innerHTML=sites.map(s=>`
-    <button onclick="doPunchInWithSite('${s.id}')" style="width:100%;text-align:left;padding:12px 14px;border:0.5px solid var(--bd);border-radius:var(--r);background:var(--bg);cursor:pointer;display:flex;align-items:center;gap:10px;font-family:var(--font)" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='var(--bg)'">
-      <span style="width:10px;height:10px;border-radius:50%;background:${s.color||'#888'};flex-shrink:0"></span>
-      <span style="font-size:14px;font-weight:500;color:var(--tx)">${s.name}</span>
-    </button>`).join('');
+  if(worksites.length===0){
+    // 勤務地マスタが未登録の場合は事業所から選択
+    list.innerHTML=sites.map(s=>`
+      <button onclick="doPunchInWithSite('${s.id}')" style="width:100%;text-align:left;padding:12px 14px;border:0.5px solid var(--bd);border-radius:var(--r);background:var(--bg);cursor:pointer;display:flex;align-items:center;gap:10px;font-family:var(--font)" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='var(--bg)'">
+        <span style="width:10px;height:10px;border-radius:50%;background:${s.color||'#888'};flex-shrink:0"></span>
+        <span style="font-size:14px;font-weight:500;color:var(--tx)">${s.name}</span>
+      </button>`).join('');
+  } else {
+    // 勤務地マスタがある場合は事業所でグループ化して表示
+    let html='';
+    sites.forEach(s=>{
+      let ws=worksites.filter(w=>String(w.siteId)===String(s.id));
+      if(!ws.length)return;
+      html+=`<div style="font-size:11px;font-weight:600;color:${s.color||'#888'};padding:6px 4px 3px;border-bottom:0.5px solid var(--bd2);margin-bottom:4px">
+        <span style="width:8px;height:8px;border-radius:50%;background:${s.color||'#888'};display:inline-block;margin-right:4px"></span>${s.name}
+      </div>`;
+      ws.forEach(w=>{
+        html+=`<button onclick="doPunchInWithSite('${w.id}')" style="width:100%;text-align:left;padding:10px 14px;border:0.5px solid var(--bd);border-radius:var(--r);background:var(--bg);cursor:pointer;display:flex;align-items:center;gap:10px;font-family:var(--font);margin-bottom:4px" onmouseover="this.style.background='var(--bg2)'" onmouseout="this.style.background='var(--bg)'">
+          <span style="font-size:13px;color:var(--tx)">${w.name}</span>
+          <span style="font-size:10px;color:var(--tx2);margin-left:auto">${w.id}</span>
+        </button>`;
+      });
+    });
+    list.innerHTML=html;
+  }
   document.getElementById('siteSelModal').style.display='flex';
 }
 
@@ -1219,7 +1266,7 @@ function renderHistory(){
     let ng=isNightShift(r),mn=midnight(r);
     let inR=roundIn(r.inTs),outR=r.outTs?roundOut(r.outTs):null;
     let inChg=inR!==r.inTs,outChg=outR&&outR!==r.outTs;
-    let ws=r.workSiteId?sites.find(s=>String(s.id)===String(r.workSiteId)):null;
+    let ws=r.workSiteId?(worksites.find(w=>String(w.id)===String(r.workSiteId))||sites.find(s=>String(s.id)===String(r.workSiteId))):null;
     let missing=isMissingPunch(r,ds);
     rows+=`<tr style="cursor:pointer;${missing?'background:#FEF9E6;':r.editedBy?'background:#F0F6FF;':''}" onclick="openEditForRec(${histUid},'${ds}')" title="${missing?'退勤打刻漏れの可能性があります':r.editedBy?'修正済み: '+r.editedBy:''}">
       <td>${mo}/${d}${ng?'<span class="nbadge">夜勤</span>':''}</td>
@@ -1657,6 +1704,23 @@ function renderAdmin(){
           </td>
         </tr>`).join('')||'<tr><td colspan="4" style="color:var(--tx2);padding:10px">職員なし</td></tr>'}</tbody>
       </table>
+      <details style="font-size:13px;margin-bottom:8px">
+        <summary style="cursor:pointer;color:var(--tx2);padding:4px 0"><i class="ti ti-map-pin"></i> 勤務地を管理</summary>
+        <div style="margin-top:8px">
+          ${worksites.filter(w=>String(w.siteId)===String(s.id)).map(w=>`
+            <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:0.5px solid var(--bd2)">
+              <span style="flex:1;font-size:12px">${w.name}</span>
+              <span style="font-size:10px;color:var(--tx2)">${w.id}</span>
+              <button class="btn" style="padding:2px 7px;font-size:11px" onclick="openWorksiteEdit('${w.id}')"><i class="ti ti-pencil"></i></button>
+              <button class="btn btn-d" style="padding:2px 7px;font-size:11px" onclick="doDeleteWorksite('${w.id}')"><i class="ti ti-trash"></i></button>
+            </div>`).join('')}
+          <div style="display:flex;gap:6px;align-items:flex-end;margin-top:8px;flex-wrap:wrap">
+            <div style="flex:0;min-width:130px"><label style="font-size:11px">勤務地ID (00-00-000-00)</label><input type="text" class="ifield wsId" data-s="${s.id}" placeholder="01-01-001-01" maxlength="12" oninput="fmtWorksiteIdInput(this)"></div>
+            <div style="flex:1;min-width:100px"><label style="font-size:11px">勤務地名</label><input type="text" class="ifield wsName" data-s="${s.id}" placeholder="例: 1F フロア"></div>
+            <button class="btn btn-p" style="font-size:12px" onclick="doAddWorksite('${s.id}')"><i class="ti ti-plus"></i> 追加</button>
+          </div>
+        </div>
+      </details>
       <details style="font-size:13px">
         <summary style="cursor:pointer;color:var(--tx2);padding:4px 0"><i class="ti ti-user-plus"></i> 職員を追加</summary>
         <div style="margin-top:10px;display:flex;gap:7px;flex-wrap:wrap;align-items:flex-end">
@@ -1847,6 +1911,53 @@ async function saveSiteEdit(){
     ns.style.cssText=`background:${s.color}22;color:${s.color};padding:3px 9px;border-radius:var(--r);font-size:11px;font-weight:500`;
   }
   notice(name+'の情報を更新しました','Ok');
+}
+
+// =============================================
+// 勤務地管理
+// =============================================
+async function doAddWorksite(siteId){
+  let wsId=document.querySelector(`.wsId[data-s="${siteId}"]`)?.value.trim();
+  let wsName=document.querySelector(`.wsName[data-s="${siteId}"]`)?.value.trim();
+  if(!wsId){alert('勤務地IDを入力してください');return;}
+  if(!validWorksiteId(wsId)){alert('勤務地IDは 00-00-000-00 形式で入力してください');return;}
+  if(!wsName){alert('勤務地名を入力してください');return;}
+  if(worksites.some(w=>String(w.id)===wsId)){alert('このIDはすでに使用されています');return;}
+  // 親事業所IDが一致するか確認
+  let parentId=wsId.slice(0,9);
+  if(parentId!==String(siteId)){alert(`勤務地IDの先頭9桁（${parentId}）が事業所ID（${siteId}）と一致しません`);return;}
+  showSync('保存中...');
+  try{
+    await api({action:'saveWorksite',id:wsId,siteId:String(siteId),name:wsName});
+    worksites.push({id:wsId,siteId:String(siteId),name:wsName});
+    document.getElementById('syncMsg').textContent='追加しました ✓';
+  }catch(e){document.getElementById('syncMsg').textContent='保存失敗';}
+  hideSync();
+  renderAdmin();
+}
+
+async function doDeleteWorksite(wsId){
+  if(!confirm('「'+worksites.find(w=>w.id===wsId)?.name+'」を削除しますか？'))return;
+  showSync('削除中...');
+  try{
+    await api({action:'deleteWorksite',id:wsId});
+    worksites=worksites.filter(w=>String(w.id)!==String(wsId));
+    document.getElementById('syncMsg').textContent='削除しました ✓';
+  }catch(e){document.getElementById('syncMsg').textContent='削除失敗';}
+  hideSync();
+  renderAdmin();
+}
+
+function openWorksiteEdit(wsId){
+  let w=worksites.find(x=>String(x.id)===String(wsId));
+  if(!w)return;
+  let newName=prompt('勤務地名を編集してください',w.name);
+  if(!newName||!newName.trim())return;
+  w.name=newName.trim();
+  api({action:'saveWorksite',id:w.id,siteId:w.siteId,name:w.name}).then(()=>{
+    notice(w.name+'を更新しました','Ok');
+    renderAdmin();
+  });
 }
 
 async function doAddSite(){
@@ -2043,7 +2154,19 @@ function _openEdit(targetUid,date){
   }
   // 勤務地プルダウンを埋める
   let ewsSel=document.getElementById('editWorkSite');
-  ewsSel.innerHTML='<option value="">選択してください</option>'+sites.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  if(worksites.length===0){
+    // 勤務地マスタ未登録時は事業所から選択
+    ewsSel.innerHTML='<option value="">選択してください</option>'+sites.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  } else {
+    // 勤務地マスタがある場合はグループ化
+    let opts='<option value="">選択してください</option>';
+    sites.forEach(s=>{
+      let ws=worksites.filter(w=>String(w.siteId)===String(s.id));
+      if(!ws.length)return;
+      opts+=`<optgroup label="${s.name}">${ws.map(w=>`<option value="${w.id}">${w.name}</option>`).join('')}</optgroup>`;
+    });
+    ewsSel.innerHTML=opts;
+  }
   document.getElementById('editInDate').value=date;
   document.getElementById('editOutDate').value=date;
   document.getElementById('editInTime').value='';
