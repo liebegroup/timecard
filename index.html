@@ -586,6 +586,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
  * v2.2.0 - 勤務表テーブルのborder-collapse起因のsticky隙間を修正
  * v2.2.1 - GAS URL更新(v23) worksites siteId日付変換防止
  * v2.2.2 - loadMasterにworksites代入処理を復元（バグ修正）
+ * v2.2.3 - 勤務地追加ボタンの連打防止、fetchに15秒タイムアウト追加
  * =============================================
  */
 const GAS = 'https://script.google.com/macros/s/AKfycby9Anim7S46MIqf9Gov-k9dB-aKB8_p0H7kYhvNcxscfTiTtDRAmnfHVH3RmR7dbZQi/exec';
@@ -608,7 +609,7 @@ let editReasons = ['打刻忘れ', '打刻ミス', '記録訂正', 'その他'];
 // マイナー: 機能追加
 // パッチ  : バグ修正・細かい調整
 // =============================================
-const VERSION = '2.2.2';
+const VERSION = '2.2.3';
 const DOW = ['日','月','火','水','木','金','土'];
 
 // 打刻漏れ判定（出勤あり・退勤なし）
@@ -780,8 +781,11 @@ function soteiMins(y,mo){
 async function api(params){
   const url=GAS+'?'+new URLSearchParams(params);
   const t0=performance.now();
+  const controller=new AbortController();
+  const timeoutId=setTimeout(()=>controller.abort(),15000); // 15秒でタイムアウト
   try{
-    const r=await fetch(url,{redirect:'follow'});
+    const r=await fetch(url,{redirect:'follow',signal:controller.signal});
+    clearTimeout(timeoutId);
     const t=await r.text();
     const elapsed=Math.round(performance.now()-t0);
     if(t.trim().startsWith('{')||t.trim().startsWith('[')){
@@ -790,15 +794,16 @@ async function api(params){
         console.log(`api(${params.action}) fetch成功 ${elapsed}ms`);
         return parsed;
       }catch(parseErr){
-        console.warn(`api(${params.action}) JSON parse失敗 ${elapsed}ms:`, parseErr.message, 'raw:', t.slice(0,100), '...', t.slice(-100));
-        return await jsonp(params);
+        console.warn(`api(${params.action}) JSON parse失敗 ${elapsed}ms:`, parseErr.message);
+        throw new Error('JSON解析失敗');
       }
     }
-    console.warn(`api(${params.action}) Non-JSON応答 ${elapsed}ms:`, t.slice(0,200));
-    return await jsonp(params);
+    console.warn(`api(${params.action}) Non-JSON応答 ${elapsed}ms`);
+    throw new Error('Non-JSON応答');
   }catch(e){
+    clearTimeout(timeoutId);
     const elapsed=Math.round(performance.now()-t0);
-    console.warn(`api(${params.action}) fetch失敗 ${elapsed}ms:`, e.name, e.message);
+    console.warn(`api(${params.action}) fetch失敗/異常応答 ${elapsed}ms:`, e.name, e.message, '→JSONPにフォールバック');
     return await jsonp(params);
   }
 }
@@ -2063,23 +2068,32 @@ async function saveSiteEdit(){
 // =============================================
 // 勤務地管理
 // =============================================
+let _worksiteAdding=false;
 async function doAddWorksite(siteId){
+  if(_worksiteAdding){return;} // 連打防止
   let wsId=document.querySelector(`.wsId[data-s="${siteId}"]`)?.value.trim();
   let wsName=document.querySelector(`.wsName[data-s="${siteId}"]`)?.value.trim();
   if(!wsId){alert('勤務地IDを入力してください');return;}
   if(!validWorksiteId(wsId)){alert('勤務地IDは 00-00-000-00 形式で入力してください');return;}
   if(!wsName){alert('勤務地名を入力してください');return;}
   if(worksites.some(w=>String(w.id)===wsId)){alert('このIDはすでに使用されています');return;}
-  // 親事業所IDが一致するか確認
   let parentId=wsId.slice(0,9);
   if(parentId!==String(siteId)){alert(`勤務地IDの先頭9桁（${parentId}）が事業所ID（${siteId}）と一致しません`);return;}
+
+  _worksiteAdding=true;
+  let btn=document.querySelector(`button[onclick="doAddWorksite('${siteId}')"]`);
+  if(btn){btn.disabled=true;btn.innerHTML='<i class="ti ti-loader-2"></i> 保存中...';}
   showSync('保存中...');
   try{
     await api({action:'saveWorksite',id:wsId,siteId:String(siteId),name:wsName});
     worksites.push({id:wsId,siteId:String(siteId),name:wsName});
     document.getElementById('syncMsg').textContent='追加しました ✓';
-  }catch(e){document.getElementById('syncMsg').textContent='保存失敗';}
+  }catch(e){
+    document.getElementById('syncMsg').textContent='保存失敗';
+    alert('保存に失敗しました。インターネット接続を確認してもう一度お試しください。');
+  }
   hideSync();
+  _worksiteAdding=false;
   renderAdmin();
 }
 
