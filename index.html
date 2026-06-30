@@ -133,7 +133,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
       <button class="tab" id="tabAd" style="display:none" onclick="showTab('admin')"><i class="ti ti-settings"></i> 管理</button>
     </div>
   </div>
-  <div style="padding:101px 20px 16px;min-height:calc(100vh - 110px)">
+  <div style="padding:101px 20px 16px;min-height:calc(100vh - 110px)" id="mainContentArea">
 
     <!-- 打刻 -->
     <div id="tPunch">
@@ -564,6 +564,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
  * v2.0.9 - 固定ブロックの最小高さを設定しレイアウトずれを防止
  * v2.1.0 - sticky→fixedに変更しスクロール時のズレを完全解消
  * v2.1.1 - 集計・全社タブの固定範囲をグラフ/サマリーまで拡張、動的スペーサー調整
+ * v2.1.2 - 固定ヘッダーの実高さを動的計算し隙間を解消、勤務表スクロールエリアを画面高さに連動
  * =============================================
  */
 const GAS = 'https://script.google.com/macros/s/AKfycbzxE6QiIfDym8yNojfkr619dCIsM2IAG8R7vj4i-BOZ_NucEDtjqijRrFK4xE-5a3-V/exec';
@@ -586,7 +587,7 @@ let editReasons = ['打刻忘れ', '打刻ミス', '記録訂正', 'その他'];
 // マイナー: 機能追加
 // パッチ  : バグ修正・細かい調整
 // =============================================
-const VERSION = '2.1.1';
+const VERSION = '2.1.2';
 const DOW = ['日','月','火','水','木','金','土'];
 
 // 打刻漏れ判定（出勤あり・退勤なし）
@@ -891,6 +892,35 @@ async function saveUser(u){
 // ============================================================
 // 初期化
 // ============================================================
+// 固定ヘッダーの実際の高さに合わせてレイアウトを調整
+function adjustFixedLayout(){
+  let nav=document.getElementById('navBarFixed');
+  let tab=document.getElementById('tabBar');
+  if(!nav||!tab)return;
+  let navH=nav.offsetHeight;
+  tab.style.top=navH+'px';
+  let tabH=tab.offsetHeight;
+  let totalH=navH+tabH;
+  let content=document.getElementById('mainContentArea');
+  if(content)content.style.paddingTop=(totalH)+'px';
+  ['histToolbar','repToolbar','rtToolbar','coToolbar','mxToolbar'].forEach(id=>{
+    let el=document.getElementById(id);
+    if(el)el.style.top=totalH+'px';
+  });
+  window._fixedHeaderHeight=totalH;
+  // 勤務表の表エリアの高さも調整
+  adjustMatrixHeight();
+}
+window.addEventListener('resize', adjustFixedLayout);
+
+function adjustMatrixHeight(){
+  let mx=document.querySelector('.mx-wrap');
+  if(!mx)return;
+  let rect=mx.getBoundingClientRect();
+  let available=window.innerHeight-rect.top-20; // 下余白20px
+  mx.style.maxHeight=Math.max(300,available)+'px';
+}
+
 async function init(){
   // バージョン表示
   document.title = 'タイムカード v'+VERSION;
@@ -956,6 +986,7 @@ async function doLogin(){
   // ログイン後に当月データを取得
   loadedMonths.delete(THIS_MONTH);
   await loadMonth(THIS_MONTH,true);
+  setTimeout(adjustFixedLayout, 50);
   showTab('punch');
   startClock();
 }
@@ -1011,6 +1042,7 @@ function showTab(name){
   const tabs={punch:'tPunch',history:'tHistory',report:'tReport',realtime:'tRealtime',company:'tCompany',matrix:'tMatrix',admin:'tAdmin'};
   Object.values(tabs).forEach(id=>document.getElementById(id).style.display='none');
   document.getElementById(tabs[name]).style.display='block';
+  setTimeout(adjustFixedLayout, 30);
   document.querySelectorAll('.tab').forEach(b=>{
     let m=b.getAttribute('onclick')?.match(/'(\w+)'/);
     if(m)b.classList.toggle('on',m[1]===name);
@@ -1714,6 +1746,7 @@ function renderMatrix(){
   document.getElementById('mxContent').innerHTML=`
     <div style="font-size:11px;color:var(--tx2);margin-bottom:8px">所定: <b>${fWork(sotei)}</b>（${y}年${mo}月）　合計が所定超過の職員は赤字</div>
     <div class="mx-wrap"><table class="mx"><thead><tr>${dCols}</tr></thead><tbody>${rows}</tbody></table></div>`;
+  requestAnimationFrame(adjustMatrixHeight);
 }
 
 // ============================================================
