@@ -549,6 +549,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
  * v2.0.1 - GAS URL更新(v19)
  * v2.0.2 - ナビバー・タブバーをスクロール時も固定表示
  * v2.0.3 - 各タブのツールバー部分も固定表示に対応
+ * v2.0.4 - api関数に詳細ログを追加（デバッグ用）
  * =============================================
  */
 const GAS = 'https://script.google.com/macros/s/AKfycbzxE6QiIfDym8yNojfkr619dCIsM2IAG8R7vj4i-BOZ_NucEDtjqijRrFK4xE-5a3-V/exec';
@@ -571,7 +572,7 @@ let editReasons = ['打刻忘れ', '打刻ミス', '記録訂正', 'その他'];
 // マイナー: 機能追加
 // パッチ  : バグ修正・細かい調整
 // =============================================
-const VERSION = '2.0.3';
+const VERSION = '2.0.4';
 const DOW = ['日','月','火','水','木','金','土'];
 
 // 打刻漏れ判定（出勤あり・退勤なし）
@@ -742,16 +743,26 @@ function soteiMins(y,mo){
 // ============================================================
 async function api(params){
   const url=GAS+'?'+new URLSearchParams(params);
+  const t0=performance.now();
   try{
     const r=await fetch(url,{redirect:'follow'});
     const t=await r.text();
+    const elapsed=Math.round(performance.now()-t0);
     if(t.trim().startsWith('{')||t.trim().startsWith('[')){
-      return JSON.parse(t);
+      try{
+        const parsed=JSON.parse(t);
+        console.log(`api(${params.action}) fetch成功 ${elapsed}ms`);
+        return parsed;
+      }catch(parseErr){
+        console.warn(`api(${params.action}) JSON parse失敗 ${elapsed}ms:`, parseErr.message, 'raw:', t.slice(0,100), '...', t.slice(-100));
+        return await jsonp(params);
+      }
     }
-    console.warn('Non-JSON response, trying JSONP');
+    console.warn(`api(${params.action}) Non-JSON応答 ${elapsed}ms:`, t.slice(0,200));
     return await jsonp(params);
   }catch(e){
-    console.warn('fetch failed, trying JSONP:', e.message);
+    const elapsed=Math.round(performance.now()-t0);
+    console.warn(`api(${params.action}) fetch失敗 ${elapsed}ms:`, e.name, e.message);
     return await jsonp(params);
   }
 }
