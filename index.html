@@ -201,7 +201,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
           </div>
         </div>
         <div id="repFilters" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
-        <div id="repFixed" style="padding-bottom:8px"></div>
+        <div id="repFixed" style="padding-bottom:8px;min-height:230px"></div>
       </div>
       <div id="repContent"></div>
     </div>
@@ -230,7 +230,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
             <button class="btn" style="font-size:11px;padding:4px 10px" onclick="loadAndRender('company',true)"><i class="ti ti-refresh"></i></button>
           </div>
         </div>
-        <div id="coFixed" style="padding-top:8px;padding-bottom:8px"></div>
+        <div id="coFixed" style="padding-top:8px;padding-bottom:8px;min-height:130px"></div>
       </div>
       <div id="coContent"></div>
     </div>
@@ -556,6 +556,7 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
  * v2.0.6 - 集計・全社タブの固定範囲を拡張、上部チラつき修正
  * v2.0.7 - 負のmarginを削除しチラつきをさらに改善
  * v2.0.8 - GPUレイヤー強制でスクロール時のチラつきを抑制
+ * v2.0.9 - 固定ブロックの最小高さを設定しレイアウトずれを防止
  * =============================================
  */
 const GAS = 'https://script.google.com/macros/s/AKfycbzxE6QiIfDym8yNojfkr619dCIsM2IAG8R7vj4i-BOZ_NucEDtjqijRrFK4xE-5a3-V/exec';
@@ -578,7 +579,7 @@ let editReasons = ['打刻忘れ', '打刻ミス', '記録訂正', 'その他'];
 // マイナー: 機能追加
 // パッチ  : バグ修正・細かい調整
 // =============================================
-const VERSION = '2.0.8';
+const VERSION = '2.0.9';
 const DOW = ['日','月','火','水','木','金','土'];
 
 // 打刻漏れ判定（出勤あり・退勤なし）
