@@ -587,9 +587,12 @@ label{font-size:11px;color:var(--tx2);display:block;margin-bottom:3px}
  * v2.2.1 - GAS URL更新(v23) worksites siteId日付変換防止
  * v2.2.2 - loadMasterにworksites代入処理を復元（バグ修正）
  * v2.2.3 - 勤務地追加ボタンの連打防止、fetchに15秒タイムアウト追加
+ * v2.3.0 - 人事異動予約機能を追加（指定日以降ログイン時に自動適用）
+ * v2.3.2 - 勤務表・全社集計を打刻時の勤務地(workSiteId)優先の遡及集計に対応
+ * v2.3.3 - GAS URL更新(v24) 人事異動予約対応
  * =============================================
  */
-const GAS = 'https://script.google.com/macros/s/AKfycby9Anim7S46MIqf9Gov-k9dB-aKB8_p0H7kYhvNcxscfTiTtDRAmnfHVH3RmR7dbZQi/exec';
+const GAS = 'https://script.google.com/macros/s/AKfycbx-DX241tstM2L4saxHW8Xhfk1dGscswM4MaMRfeGaV94WGn-pF3XogcBoGtxlr3qrR/exec';
 
 const EMP = {
   seishain:   {label:'正社員',         h:8, shortage:true},
@@ -609,7 +612,7 @@ let editReasons = ['打刻忘れ', '打刻ミス', '記録訂正', 'その他'];
 // マイナー: 機能追加
 // パッチ  : バグ修正・細かい調整
 // =============================================
-const VERSION = '2.2.3';
+const VERSION = '2.3.3';
 const DOW = ['日','月','火','水','木','金','土'];
 
 // 打刻漏れ判定（出勤あり・退勤なし）
@@ -650,6 +653,28 @@ function siteOfWorksite(wsId){
   let ws=worksites.find(w=>String(w.id)===String(wsId));
   if(!ws)return null;
   return sites.find(s=>String(s.id)===String(ws.siteId));
+}
+
+// workSiteIdから実効事業所IDを取得（worksitesマスタ未登録時はworkSiteId自体が事業所IDとみなす）
+function resolveEffectiveSiteId(workSiteId, fallbackSiteId){
+  if(!workSiteId) return fallbackSiteId;
+  // worksitesマスタに登録されている場合はその親事業所
+  let ws=worksites.find(w=>String(w.id)===String(workSiteId));
+  if(ws) return String(ws.siteId);
+  // worksitesマスタが無い/未登録の場合、workSiteId自体が事業所IDの可能性が高い
+  let directSite=sites.find(s=>String(s.id)===String(workSiteId));
+  if(directSite) return String(directSite.id);
+  // どちらにも一致しない場合はフォールバック
+  return fallbackSiteId;
+}
+
+// ある日の実効事業所ID（その日の打刻のworkSiteIdを優先、なければ現在の所属事業所）
+function effectiveSiteIdForDate(uid, dateStr, fallbackSiteId){
+  let r=records[recKey(uid,dateStr)];
+  if(r&&r.workSiteId){
+    return resolveEffectiveSiteId(r.workSiteId, fallbackSiteId);
+  }
+  return fallbackSiteId;
 }
 // 勤務地名を取得（事業所名 > 勤務地名）
 function worksiteName(wsId){
@@ -835,6 +860,8 @@ async function loadMaster(){
     // SI:プレフィックスをデコード（日付変換防止用）
     let sid=String(u.siteId||'');
     if(sid.startsWith('SI:'))sid=sid.slice(3);
+    let psid=String(u.pendingSiteId||'');
+    if(psid.startsWith('SI:'))psid=psid.slice(3);
     return {
       ...u,
       id:parseId(u.id),
@@ -842,7 +869,9 @@ async function loadMaster(){
       prefix:getPrefix(u.id),
       siteId:sid,
       employmentType:(u.employmentType&&u.employmentType!=='')?u.employmentType:'seishain',
-      pw:String(u.pw)
+      pw:String(u.pw),
+      pendingSiteId: psid || null,
+      pendingDate: u.pendingDate || null,
     };
   });
   if(sites.length)document.getElementById('nextSiteId')||(window.nextSiteId=Math.max(...sites.map(s=>s.id))+1);
@@ -910,7 +939,7 @@ async function saveRec(uid,inDate){
 async function saveUser(u){
   showSync('保存中...');
   try{
-    await api({action:'saveUser',id:u.rawId||fmtId(u.id,u.prefix),name:u.name,role:u.role,pw:String(u.pw),siteId:String(u.siteId||''),employmentType:u.employmentType||'seishain'});
+    await api({action:'saveUser',id:u.rawId||fmtId(u.id,u.prefix),name:u.name,role:u.role,pw:String(u.pw),siteId:String(u.siteId||''),employmentType:u.employmentType||'seishain',pendingSiteId:String(u.pendingSiteId||''),pendingDate:u.pendingDate||''});
     document.getElementById('syncMsg').textContent='保存完了 ✓';
   }catch(e){document.getElementById('syncMsg').textContent='保存失敗';}
   hideSync();
@@ -992,6 +1021,20 @@ function onLsSite(){
   document.getElementById('loginErr').style.display='none';
 }
 
+// 異動予約の自動適用チェック（ログイン時に毎回呼ばれる）
+async function applyPendingMoveIfDue(u){
+  if(!u.pendingSiteId||!u.pendingDate)return false;
+  if(u.pendingDate<=TODAY_STR){
+    let oldSiteId=u.siteId;
+    u.siteId=u.pendingSiteId;
+    u.pendingSiteId=null;
+    u.pendingDate=null;
+    await saveUser(u);
+    return true;
+  }
+  return false;
+}
+
 async function doLogin(){
   let uid=parseInt(document.getElementById('lsUser').value);
   let pw=document.getElementById('lsPw').value;
@@ -1000,6 +1043,8 @@ async function doLogin(){
     let e=document.getElementById('loginErr');e.textContent='パスワードが違います';e.style.display='block';
     document.getElementById('lsPw').value='';return;
   }
+  // 異動予約の自動適用
+  let moved=await applyPendingMoveIfDue(u);
   cu=u;histUid=u.id;repUid=u.id;
 
   // 初期パスワードのままならログイン後に強制変更
@@ -1024,6 +1069,10 @@ async function doLogin(){
   setTimeout(adjustFixedLayout, 50);
   showTab('punch');
   startClock();
+  if(moved){
+    let s=sites.find(x=>String(x.id)===String(u.siteId));
+    setTimeout(()=>notice('事業所異動が適用されました：'+(s?.name||u.siteId),'Ok'),300);
+  }
 }
 
 function setupMainAfterLogin(u){
@@ -1416,6 +1465,27 @@ function renderHistory(){
 // ============================================================
 // 集計
 // ============================================================
+// 日ごとの実効事業所別に実働時間・深夜・夜勤回数を按分集計
+function calcStatsBySite(y,mo){
+  let days=new Date(y,mo,0).getDate();
+  let bySite={}; // siteId -> {work, mn, days, night}
+  users.forEach(u=>{
+    let st=calcStats(u.id,y,mo);
+    st.daily.forEach((x,i)=>{
+      if(!x.work)return;
+      let ds=y+'-'+f2(mo)+'-'+f2(i+1);
+      let eff=String(effectiveSiteIdForDate(u.id,ds,u.siteId));
+      if(!bySite[eff])bySite[eff]={work:0,mn:0,days:0,night:0,userSet:new Set()};
+      bySite[eff].work+=x.work;
+      bySite[eff].mn+=x.mn;
+      bySite[eff].days+=1;
+      if(x.night)bySite[eff].night+=1;
+      bySite[eff].userSet.add(u.id);
+    });
+  });
+  return bySite;
+}
+
 function calcStats(uid,y,mo){
   let days=new Date(y,mo,0).getDate();
   let sotei=soteiMins(y,mo);
@@ -1623,9 +1693,22 @@ function exportMatrixCsv(){
   let [y,mo]=ym.split('-').map(Number);
   let days=new Date(y,mo,0).getDate();
   let sf=document.getElementById('mxSite').value;
-  let tUsers=sf==='all'
-    ?[...users].sort((a,b)=>String(a.siteId).localeCompare(String(b.siteId))||a.id-b.id)
-    :users.filter(u=>String(u.siteId)===String(sf));
+  // 特定事業所選択時: その事業所が現在の所属、または当月いずれかの日の実効事業所である職員を対象にする
+  let tUsers;
+  if(sf==='all'){
+    tUsers=[...users].sort((a,b)=>String(a.siteId).localeCompare(String(b.siteId))||a.id-b.id);
+  }else{
+    tUsers=users.filter(u=>{
+      if(String(u.siteId)===String(sf))return true; // 現在の所属が一致
+      // 当月のいずれかの日でこの事業所に実効的に勤務しているか確認（遡及適用）
+      for(let d=1;d<=days;d++){
+        let ds=y+'-'+f2(mo)+'-'+f2(d);
+        let eff=effectiveSiteIdForDate(u.id,ds,u.siteId);
+        if(String(eff)===String(sf))return true;
+      }
+      return false;
+    });
+  }
   let sotei=soteiMins(y,mo);
   let headers=['職員ID','氏名','事業所','職種'];
   for(let d=1;d<=days;d++){
@@ -1683,13 +1766,14 @@ function renderCompany(){
   let sotei=soteiMins(y,mo);
   let tWork=0,tOT=0,tMn=0,tDays=0,tNight=0;
   users.forEach(u=>{let st=calcStats(u.id,y,mo);tWork+=st.totalWork;tOT+=st.ot;tMn+=st.totalMn;tDays+=st.workDays;tNight+=st.nightDays;});
+  // 実効事業所ベースの按分集計（遡及適用：打刻時の勤務地を優先）
+  let statsBySite=calcStatsBySite(y,mo);
   let sRows=sites.map(s=>{
-    let sw=0,sot=0,smn=0,sd=0,sn=0;
-    users.filter(u=>u.siteId===s.id).forEach(u=>{let st=calcStats(u.id,y,mo);sw+=st.totalWork;sot+=st.ot;smn+=st.totalMn;sd+=st.workDays;sn+=st.nightDays;});
+    let bs=statsBySite[String(s.id)]||{work:0,mn:0,days:0,night:0,userSet:new Set()};
     return`<tr><td><span style="width:8px;height:8px;border-radius:50%;background:${s.color};display:inline-block;margin-right:6px"></span>${s.name}</td>
-      <td>${users.filter(u=>u.siteId===s.id).length}名</td><td>${sd}日</td><td>${fWork(sw)}</td>
-      <td style="${sot>0?'color:var(--txD);font-weight:500':''}">${fWork(sot)}</td>
-      <td style="${smn>0?'color:#533AB7':''}">${fMin(smn)}</td><td>${sn}回</td></tr>`;
+      <td>${bs.userSet.size}名</td><td>${bs.days}日</td><td>${fWork(bs.work)}</td>
+      <td>—</td>
+      <td style="${bs.mn>0?'color:#533AB7':''}">${fMin(bs.mn)}</td><td>${bs.night}回</td></tr>`;
   }).join('');
   let uRows=users.map(u=>{let st=calcStats(u.id,y,mo);return{u,st,s:sites.find(x=>x.id===u.siteId)};})
     .sort((a,b)=>b.st.ot-a.st.ot)
@@ -1739,9 +1823,22 @@ function renderMatrix(){
   let [y,mo]=ym.split('-').map(Number);
   let days=new Date(y,mo,0).getDate();
   let sf=document.getElementById('mxSite').value;
-  let tUsers=sf==='all'
-    ?[...users].sort((a,b)=>String(a.siteId).localeCompare(String(b.siteId))||a.id-b.id)
-    :users.filter(u=>String(u.siteId)===String(sf));
+  // 特定事業所選択時: その事業所が現在の所属、または当月いずれかの日の実効事業所である職員を対象にする
+  let tUsers;
+  if(sf==='all'){
+    tUsers=[...users].sort((a,b)=>String(a.siteId).localeCompare(String(b.siteId))||a.id-b.id);
+  }else{
+    tUsers=users.filter(u=>{
+      if(String(u.siteId)===String(sf))return true; // 現在の所属が一致
+      // 当月のいずれかの日でこの事業所に実効的に勤務しているか確認（遡及適用）
+      for(let d=1;d<=days;d++){
+        let ds=y+'-'+f2(mo)+'-'+f2(d);
+        let eff=effectiveSiteIdForDate(u.id,ds,u.siteId);
+        if(String(eff)===String(sf))return true;
+      }
+      return false;
+    });
+  }
   let sotei=soteiMins(y,mo);
   let dCols='<th class="cName corner">職員名</th>';
   for(let d=1;d<=days;d++){
@@ -1768,7 +1865,14 @@ function renderMatrix(){
       let ds=y+'-'+f2(mo)+'-'+f2(i+1);
       let dow=new Date(ds).getDay();
       let isT=ds===TODAY_STR;
-      if(!x.work){
+      // 特定事業所表示中は、その日の実効事業所が一致しない場合は対象外として扱う
+      let belongsToFilter = sf==='all' || String(effectiveSiteIdForDate(u.id,ds,u.siteId))===String(sf);
+      if(!x.work || !belongsToFilter){
+        if(x.work && !belongsToFilter){
+          // 実働はあるが他事業所勤務だった日 → グレーで「他」と表示
+          cells+=`<td style="${isT?'outline:1.5px solid var(--txI);outline-offset:-1px;':''}"><div class="mc" style="color:var(--tx3);font-size:9px">他</div></td>`;
+          return;
+        }
         let rr=records[recKey(u.id,ds)];
         let isMissing=isMissingPunch(rr,ds);
         cells+=`<td style="${isMissing?'cursor:pointer;':dow===0||dow===6?'':'cursor:pointer;'}${isT?'outline:1.5px solid var(--txI);outline-offset:-1px;':''}${isMissing?'background:#FEF9E6;':''}" ${isMissing||(!x.work&&dow!==0&&dow!==6)?`onclick="openEditForRec(${u.id},'${ds}')" title="クリックして追加"`:''}>
@@ -1830,6 +1934,7 @@ function renderAdmin(){
           <td style="vertical-align:middle">
             <span class="badge ${u.role==='admin'?'bAdmin':'bStaff'}">${u.role==='admin'?'管理者':'職員'}</span>
             <div style="font-size:10px;color:var(--tx2);margin-top:2px">${EMP[u.employmentType]?.label||'—'}</div>
+            ${u.pendingSiteId?`<div style="font-size:9px;color:var(--txW);margin-top:2px;white-space:nowrap"><i class="ti ti-clock"></i> ${u.pendingDate}〜異動予約</div>`:''}
           </td>
           <td style="vertical-align:middle">
             <span class="sdot ${getTodayRec(u.id).inTs?'dIn':'dOff'}"></span>
@@ -2250,9 +2355,35 @@ function openMove(uid){
   let u=users.find(x=>x.id===uid);
   document.getElementById('pwTitle').textContent=u.name+' の事業所移動';
   document.getElementById('pwErr').style.display='none';
-  document.getElementById('pwFields').innerHTML=`<div><label>移動先</label><select id="moveSel" class="ifield" style="cursor:pointer">
-    ${sites.filter(s=>s.id!==u.siteId).map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}</select></div>`;
+  let pendingInfo=u.pendingSiteId
+    ?`<div class="notice nWarn" style="margin-bottom:10px;font-size:12px">
+        <i class="ti ti-clock"></i> 異動予約あり: ${sites.find(s=>String(s.id)===String(u.pendingSiteId))?.name||u.pendingSiteId}（${u.pendingDate}〜）
+        <br><button class="btn btn-d" style="font-size:10px;padding:2px 8px;margin-top:4px" onclick="cancelPendingMove(${uid})">予約を取り消す</button>
+      </div>`:'';
+  document.getElementById('pwFields').innerHTML=`
+    ${pendingInfo}
+    <div style="margin-bottom:10px"><label>移動先</label><select id="moveSel" class="ifield" style="cursor:pointer">
+      ${sites.filter(s=>String(s.id)!==String(u.siteId)).map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}</select></div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <input type="checkbox" id="moveScheduled" onchange="document.getElementById('moveDateWrap').style.display=this.checked?'block':'none'">
+      <label style="margin:0;cursor:pointer" onclick="document.getElementById('moveScheduled').click()">異動日を指定して予約する</label>
+    </div>
+    <div id="moveDateWrap" style="display:none">
+      <label>異動日（この日以降のログイン時に自動適用）</label>
+      <input type="date" id="moveDate" class="ifield" min="${TODAY_STR}">
+    </div>`;
   document.getElementById('pwModal').style.display='flex';
+}
+
+async function cancelPendingMove(uid){
+  if(!confirm('異動予約を取り消しますか？'))return;
+  let u=users.find(x=>x.id===uid);
+  u.pendingSiteId=null;
+  u.pendingDate=null;
+  await saveUser(u);
+  closePw();
+  renderAdmin();
+  notice('異動予約を取り消しました','Ok');
 }
 function openPw(uid){
   pwMode='pw';pwTargetId=uid;
@@ -2270,8 +2401,25 @@ function closePw(){document.getElementById('pwModal').style.display='none';}
 async function savePw(){
   if(pwMode==='move'){
     let u=users.find(x=>x.id===pwTargetId);
-    u.siteId=parseInt(document.getElementById('moveSel').value);
-    await saveUser(u);closePw();renderAdmin();fillLoginSelects();return;
+    let newSiteId=document.getElementById('moveSel').value;
+    let isScheduled=document.getElementById('moveScheduled').checked;
+    if(isScheduled){
+      let moveDate=document.getElementById('moveDate').value;
+      if(!moveDate){alert('異動日を指定してください');return;}
+      u.pendingSiteId=newSiteId;
+      u.pendingDate=moveDate;
+      await saveUser(u);
+      closePw();renderAdmin();
+      notice(u.name+'の異動を'+moveDate+'に予約しました','Ok');
+    }else{
+      u.siteId=newSiteId;
+      u.pendingSiteId=null;
+      u.pendingDate=null;
+      await saveUser(u);
+      closePw();renderAdmin();fillLoginSelects();
+      notice(u.name+'の事業所を移動しました','Ok');
+    }
+    return;
   }
   let u=users.find(x=>x.id===pwTargetId);
   let e=document.getElementById('pwErr');
